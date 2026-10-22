@@ -63,6 +63,14 @@ tests/             Vitest unit tests
   - Editing an occurrence's date or time changes only that occurrence. Changing the title or type updates the series, but not past or completed occurrences. Changing the repeat rule restarts the series from the next occurrence, and "Does not repeat" keeps just that occurrence.
   - Removing one occurrence skips it. Selecting all of a stack's occurrences turns the button into **Remove series**, which stops the series (with undo).
   - Rules are a subset of iCalendar RRULE, so they map directly to .ics import and export.
+- **Custom dates.** Repeat › **Custom dates…** replaces the date button with chips for the chosen days, plus a calendar where clicking toggles a day and Shift-click adds a range. You can also type a date and press Enter. Past days can't be chosen. Every occurrence uses the item's time, and the stack reads "On N custom dates".
+- **Ends.** The Ends menu offers **Never ends**, **Until a date** (inclusive) and **After a number of times**.
+- **Numbered titles.** When an item repeats, **# Number each occurrence** inserts `{n}` into the title, e.g. "Chapter {n} Homework" becomes Chapter 1, 2, 3… Hand-picked dates work too.
+  - Select a number in the title first and the button replaces it and starts counting from it. You can also change **Numbered from** directly.
+  - A live preview shows the next titles.
+  - Numbers follow schedule position, so removing Chapter 2 leaves Chapter 3 as Chapter 3.
+  - Editing a numbered series edits its template, and every upcoming occurrence is renumbered. Changing the rule restarts the series from the next occurrence, which keeps its number.
+  - Custom-date and numbered series export as separate events, because one RRULE can't carry hand-picked days or changing titles. An endless numbered series exports its next 104.
 - **Completing items.** "Complete" sits next to "Remove" in a tile's edit state and plays a short completion animation. Each completion is saved as its own record, so stats survive even if the item is later removed.
 - **New items.** A new item defaults to tomorrow at 9:00 AM. If you leave it with an empty title, it's discarded.
 - **Editing.** Changes save when the editor closes: press Escape, press Enter in the title, or click anywhere outside it. Clearing the time makes an item all-day. Typed times accept `3pm`, `3:30 p.m.`, `15:00`, `1500`, `noon` and `midnight`; a bare number such as `9` is read as 24-hour time.

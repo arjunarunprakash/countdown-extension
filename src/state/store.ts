@@ -1,7 +1,8 @@
 import { batch, signal } from "@preact/signals";
 import { toLocalISO } from "../lib/dates";
 import * as ops from "../lib/items";
-import { topUp, type RepeatEnd, type RepeatRule, type Series } from "../lib/recurrence";
+import { hasNumberToken } from "../lib/numbering";
+import { occurrenceIndex, occurrenceTitle, topUp, type RepeatEnd, type RepeatRule, type Series } from "../lib/recurrence";
 import {
   DEFAULT_PREFS,
   defaultBackend,
@@ -34,39 +35,71 @@ export async function initStore(b: StorageBackend = defaultBackend()) {
     prefs.value = state.prefs;
     ready.value = true;
   });
-  // Keep side panels in other windows in sync.
+  // Keep side panels in other windows in sync. Changes made together arrive
+  // together (see persist), and are applied as one update.
   backend.subscribe((changes) => {
-    batch(() => {
-      if ("items" in changes) items.value = parseItems(changes.items);
-      if ("completions" in changes) completions.value = parseCompletions(changes.completions);
-      if ("series" in changes) series.value = parseSeries(changes.series);
-      if ("prefs" in changes) prefs.value = parsePrefs(changes.prefs);
-    });
+    applyingRemote = true;
+    try {
+      batch(() => {
+        if ("items" in changes) items.value = parseItems(changes.items);
+        if ("completions" in changes) completions.value = parseCompletions(changes.completions);
+        if ("series" in changes) series.value = parseSeries(changes.series);
+        if ("prefs" in changes) prefs.value = parsePrefs(changes.prefs);
+      });
+    } finally {
+      applyingRemote = false;
+    }
   });
 }
 
-// Each setter persists *before* updating the signal. Updating a signal can
-// synchronously run effects (e.g. ensureOccurrences) that write newer data;
-// persisting first guarantees the newest write reaches storage last.
+/** True while applying another panel's change; effects shouldn't write back then. */
+let applyingRemote = false;
+
+// ── Persistence ────────────────────────────────────────────────
+// Writes made in the same task (an action plus the effects it triggers,
+// such as occurrence top-up) are coalesced into one storage write. Other
+// panels then receive items and series together, never one without the
+// other, so they can't act on half a change.
+
+let pending: Partial<Record<"items" | "completions" | "series" | "prefs", unknown>> | null = null;
+
+function persist(key: "items" | "completions" | "series" | "prefs", value: unknown) {
+  if (!pending) {
+    pending = {};
+    queueMicrotask(flush);
+  }
+  pending[key] = value;
+}
+
+function flush() {
+  const values = pending;
+  pending = null;
+  if (values) void backend.set(values);
+}
+
+/** Writes anything pending right away (for tests). */
+export function flushWrites() {
+  flush();
+}
 
 function setItems(next: Item[]) {
-  void backend.set({ items: next });
+  persist("items", next);
   items.value = next;
 }
 
 function setCompletions(next: CompletionRecord[]) {
-  void backend.set({ completions: next });
+  persist("completions", next);
   completions.value = next;
 }
 
 function setSeries(next: Series[]) {
-  void backend.set({ series: next });
+  persist("series", next);
   series.value = next;
 }
 
 export function setPrefs(patch: Partial<Prefs>) {
   const next = { ...prefs.value, ...patch };
-  void backend.set({ prefs: next });
+  persist("prefs", next);
   prefs.value = next;
 }
 
@@ -80,33 +113,55 @@ export function saveItem(item: Item) {
   setItems(items.value.map((i) => (i.id === item.id ? item : i)));
 }
 
+/** A series title: the template (may contain {n}) and, if numbered, the first number. */
+export interface SeriesTitle {
+  template: string;
+  numberFrom?: number;
+}
+
+/** Keeps numberFrom only when the template actually contains the {n} token. */
+const titleFields = (title: SeriesTitle) =>
+  hasNumberToken(title.template) ? { numberFrom: title.numberFrom ?? 1 } : { numberFrom: undefined };
+
 /**
  * Applies title/type changes to a series: its template (future occurrences)
- * and every upcoming, uncompleted occurrence. Past and completed occurrences
- * keep the title they had.
+ * and every upcoming, uncompleted occurrence, re-numbered by position when
+ * the title uses {n}. Past and completed occurrences keep the title they had.
  */
-export function saveSeries(seriesId: string, patch: Pick<Item, "title" | "type">, now = new Date()) {
-  const title = patch.title.trim();
+export function saveSeries(seriesId: string, patch: { title: string; type: Item["type"]; numberFrom?: number }, now = new Date()) {
   const t = now.getTime();
-  batch(() => {
+  const s = series.value.find((x) => x.id === seriesId);
+  const isUpcoming = (i: Item) => i.seriesId === seriesId && !i.completedAt && Date.parse(i.dateTime) > t;
+  const stamp = toLocalISO(now);
+
+  if (!s) {
+    // A fixed stack (imported rule we can't represent): rename its occurrences.
+    const title = patch.title.trim();
     setItems(
       items.value.map((i) =>
-        i.seriesId === seriesId &&
-        !i.completedAt &&
-        Date.parse(i.dateTime) > t &&
-        ((title && i.title !== title) || i.type !== patch.type)
-          ? { ...i, title: title || i.title, type: patch.type, updatedAt: toLocalISO(now) }
+        isUpcoming(i) && ((title && i.title !== title) || i.type !== patch.type)
+          ? { ...i, title: title || i.title, type: patch.type, updatedAt: stamp }
           : i,
       ),
     );
-    const s = series.value.find((x) => x.id === seriesId);
-    if (s && ((title && s.template.title !== title) || s.template.type !== patch.type)) {
-      setSeries(
-        series.value.map((x) =>
-          x.id === seriesId ? { ...x, template: { ...x.template, title: title || x.template.title, type: patch.type } } : x,
-        ),
-      );
-    }
+    return;
+  }
+
+  const template = patch.title.trim() || s.template.title;
+  const next: Series = { ...s, template: { ...s.template, title: template, type: patch.type } };
+  const { numberFrom } = titleFields({ template, numberFrom: patch.numberFrom ?? s.numberFrom });
+  if (numberFrom === undefined) delete next.numberFrom;
+  else next.numberFrom = numberFrom;
+
+  batch(() => {
+    setItems(
+      items.value.map((i) => {
+        if (!isUpcoming(i)) return i;
+        const title = occurrenceTitle(next, occurrenceIndex(next, i));
+        return i.title === title && i.type === patch.type ? i : { ...i, title, type: patch.type, updatedAt: stamp };
+      }),
+    );
+    if (JSON.stringify(next) !== JSON.stringify(s)) setSeries(series.value.map((x) => (x.id === seriesId ? next : x)));
   });
 }
 
@@ -114,19 +169,23 @@ export function saveSeries(seriesId: string, patch: Pick<Item, "title" | "type">
 
 /**
  * Turns an item into the first occurrence of a new repeating series.
+ * `title` carries the template when it numbers occurrences ({n}); the item's
+ * own title should already be the rendered first one.
  * Call inside batch() together with adding/saving the returned item, so
  * occurrence generation sees both at once.
  */
-export function makeRepeating(item: Item, rule: RepeatRule, end: RepeatEnd): Item {
+export function makeRepeating(item: Item, rule: RepeatRule, end: RepeatEnd, title?: SeriesTitle): Item {
   const s: Series = {
     id: crypto.randomUUID(),
     epoch: 0,
     start: item.dateTime,
     rule,
     end,
-    template: { title: item.title, type: item.type, ...(item.notes ? { notes: item.notes } : {}) },
+    template: { title: title?.template ?? item.title, type: item.type, ...(item.notes ? { notes: item.notes } : {}) },
     nextIndex: 1,
   };
+  const { numberFrom } = titleFields({ template: s.template.title, numberFrom: title?.numberFrom });
+  if (numberFrom !== undefined) s.numberFrom = numberFrom;
   if (item.allDay) s.allDay = true;
   setSeries([...series.value, s]);
   return { ...item, seriesId: s.id };
@@ -134,11 +193,19 @@ export function makeRepeating(item: Item, rule: RepeatRule, end: RepeatEnd): Ite
 
 /**
  * Changes a series' repeat rule, restarting it from `anchor` (an upcoming
- * occurrence that is kept). Other upcoming occurrences are regenerated;
- * past and completed ones stay. A null rule stops the series and leaves
- * the anchor as a one-off item.
+ * occurrence that is kept and becomes occurrence 0). Other upcoming
+ * occurrences are regenerated; past and completed ones stay. A null rule
+ * stops the series and leaves the anchor as a one-off item.
+ * `title` sets the template and numbering (numberFrom = the anchor's number).
  */
-export function changeSeriesRule(seriesId: string, anchor: Item, rule: RepeatRule | null, end: RepeatEnd, now = new Date()) {
+export function changeSeriesRule(
+  seriesId: string,
+  anchor: Item,
+  rule: RepeatRule | null,
+  end: RepeatEnd,
+  now = new Date(),
+  title?: SeriesTitle,
+) {
   const s = series.value.find((x) => x.id === seriesId);
   if (!s) return;
   const t = now.getTime();
@@ -148,18 +215,22 @@ export function changeSeriesRule(seriesId: string, anchor: Item, rule: RepeatRul
   batch(() => {
     const kept = items.value.filter((i) => !isUpcomingSibling(i));
     if (rule) {
-      setItems(kept.map((i) => (i.id === anchor.id ? { ...anchor, seriesId } : i)));
       const restarted: Series = {
         ...s,
         epoch: s.epoch + 1,
         start: anchor.dateTime,
         rule,
         end,
-        template: { title: anchor.title, type: anchor.type, ...(anchor.notes ? { notes: anchor.notes } : {}) },
+        template: { title: title?.template ?? anchor.title, type: anchor.type, ...(anchor.notes ? { notes: anchor.notes } : {}) },
         nextIndex: 1,
       };
+      const { numberFrom } = titleFields({ template: restarted.template.title, numberFrom: title?.numberFrom });
+      if (numberFrom === undefined) delete restarted.numberFrom;
+      else restarted.numberFrom = numberFrom;
       if (anchor.allDay) restarted.allDay = true;
       else delete restarted.allDay;
+      const anchorTitle = occurrenceTitle(restarted, 0);
+      setItems(kept.map((i) => (i.id === anchor.id ? { ...anchor, title: anchorTitle, seriesId } : i)));
       setSeries(series.value.map((x) => (x.id === seriesId ? restarted : x)));
     } else {
       setItems(
@@ -255,6 +326,9 @@ export function addImported(newItems: Item[], newSeries: Series[], count: number
  */
 export function ensureOccurrences(now: number) {
   if (!ready.value || series.value.length === 0) return;
+  // The panel that made a change tops up for it; reacting to another panel's
+  // change here could write back a list that hasn't caught up yet.
+  if (applyingRemote) return;
   const added: Item[] = [];
   let changed = false;
   const nextSeries = series.value.map((s) => {

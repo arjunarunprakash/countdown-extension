@@ -228,3 +228,44 @@ describe("googleCalendarUrl", () => {
     expect(url.searchParams.get("recur")).toBe("RRULE:FREQ=WEEKLY;COUNT=10");
   });
 });
+
+describe("buildIcs: listed series", () => {
+  const head = (s: Series, title: string): Item =>
+    item({ id: "anchor", title, type: "due", dateTime: s.start, seriesId: s.id });
+
+  it("exports custom dates as one event per date", () => {
+    const s = series({
+      start: toLocalISO(new Date(2026, 9, 26, 17)),
+      rule: { freq: "DATES", interval: 1, dates: ["2026-10-26", "2026-11-03", "2026-11-20"] },
+      nextIndex: 1,
+    });
+    const evs = events(buildIcs([{ kind: "series", series: s, upcoming: [head(s, "Quiz")] }], [head(s, "Quiz")], now));
+    expect(evs).toHaveLength(3);
+    expect(evs.some((e) => e.hasProperty("rrule"))).toBe(false);
+    expect(evs.map((e) => (e.getFirstPropertyValue("dtstart") as ICAL.Time).toJSDate().getDate())).toEqual([26, 3, 20]);
+  });
+
+  it("exports numbered titles per occurrence, up to the end", () => {
+    const s = series({
+      start: toLocalISO(new Date(2026, 9, 26, 17)),
+      end: { type: "count", count: 4 },
+      template: { title: "Chapter {n} Homework", type: "due" },
+      numberFrom: 1,
+      nextIndex: 1,
+    });
+    const evs = events(buildIcs([{ kind: "series", series: s, upcoming: [head(s, "Chapter 1 Homework")] }], [head(s, "Chapter 1 Homework")], now));
+    expect(evs.map((e) => e.getFirstPropertyValue("summary"))).toEqual([
+      "Chapter 1 Homework",
+      "Chapter 2 Homework",
+      "Chapter 3 Homework",
+      "Chapter 4 Homework",
+    ]);
+    expect(new Set(evs.map((e) => e.getFirstPropertyValue("uid"))).size).toBe(4);
+  });
+
+  it("caps an endless numbered series", () => {
+    const s = series({ template: { title: "Week {n}", type: "starts" }, numberFrom: 1, nextIndex: 1 });
+    const evs = events(buildIcs([{ kind: "series", series: s, upcoming: [head(s, "Week 1")] }], [head(s, "Week 1")], now));
+    expect(evs).toHaveLength(104);
+  });
+});

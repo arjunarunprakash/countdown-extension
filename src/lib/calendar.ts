@@ -45,3 +45,22 @@ export function formatShortDay(p: DateParts): string {
   ) as Record<string, string>;
   return `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}`;
 }
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** "2026-10-29" for a day. */
+export const toYmd = (p: DateParts) => `${p.year}-${pad2(p.month + 1)}-${pad2(p.day)}`;
+
+/** Day for "2026-10-29". */
+export function fromYmd(s: string): DateParts {
+  const [y, m, d] = s.split("-").map(Number) as [number, number, number];
+  return { year: y, month: m - 1, day: d };
+}
+
+/** Every day from a to b inclusive, in either order. */
+export function daysBetween(a: DateParts, b: DateParts): DateParts[] {
+  const [from, to] = toYmd(a) <= toYmd(b) ? [a, b] : [b, a];
+  const out: DateParts[] = [];
+  for (let d = from; toYmd(d) <= toYmd(to) && out.length < 400; d = addDays(d, 1)) out.push(d);
+  return out;
+}

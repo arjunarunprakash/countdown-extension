@@ -3,7 +3,9 @@ import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useDismiss, type DismissReason } from "../hooks/useDismiss";
 import { differs, fieldsOf, withFields, type ItemFields } from "../lib/items";
 import type { Item, Unit } from "../lib/types";
-import { presetOf } from "../lib/recurrence";
+import { fromYmd, toYmd } from "../lib/calendar";
+import { hasNumberToken, renderTitle } from "../lib/numbering";
+import { occurrenceIndex, occurrenceTitle, presetOf, type Series } from "../lib/recurrence";
 import { addItem, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
 import { editing, focusTile, startCompletion } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
@@ -11,6 +13,7 @@ import { SelectCell } from "./SelectCell";
 import { DatePicker } from "./DatePicker";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { Icon } from "./Icon";
+import { TitleNumbering } from "./TitleNumbering";
 import { TimeField } from "./TimeField";
 import { TypeToggle } from "./TypeToggle";
 
@@ -21,12 +24,26 @@ interface Props {
   now: number;
 }
 
+const seriesOf = (item: Item): Series | undefined =>
+  item.seriesId ? series.value.find((x) => x.id === item.seriesId) : undefined;
+
 /** The repeat settings an item starts with: its series' rule, or none. */
-function initialRepeat(item: Item): RepeatValue {
-  const s = item.seriesId ? series.value.find((x) => x.id === item.seriesId) : undefined;
+export function repeatOf(s: Series | undefined, from: Item): RepeatValue {
   if (!s) return NO_REPEAT;
   const preset = presetOf(s.rule);
-  return preset === "custom" ? { preset, end: s.end, custom: s.rule } : { preset, end: s.end };
+  if (preset === "custom") return { preset, end: s.end, custom: s.rule };
+  if (preset === "dates") {
+    // Only this occurrence's date and later ones are editable.
+    const fromDay = toYmd(fieldsOf(from).date);
+    return { preset, end: s.end, dates: (s.rule.dates ?? []).filter((d) => d >= fromDay) };
+  }
+  return { preset, end: s.end };
+}
+
+/** How many occurrences a repeat will make, when that's known (for the title preview). */
+export function occurrenceCount(r: RepeatValue): number | undefined {
+  if (r.preset === "dates") return r.dates?.length;
+  return r.end.type === "count" ? r.end.count : undefined;
 }
 
 /**
@@ -35,11 +52,19 @@ function initialRepeat(item: Item): RepeatValue {
  * click anywhere outside). A new item with no title is discarded.
  */
 export function EditorRow({ item, isNew, unit, now }: Props) {
-  const [fields, setFields] = useState<ItemFields>(() => fieldsOf(item));
-  const [initial] = useState(() => initialRepeat(item));
-  const [repeat, setRepeat] = useState<RepeatValue>(initial);
+  const [owner] = useState(() => seriesOf(item));
+  const [fields, setFields] = useState<ItemFields>(() => {
+    const f = fieldsOf(item);
+    // A numbered series shows its template ("Chapter {n}"), not this occurrence's title.
+    return owner?.numberFrom !== undefined ? { ...f, title: owner.template.title } : f;
+  });
+  const [initial] = useState(() => repeatOf(owner, item));
+  const [repeat, setRepeatState] = useState<RepeatValue>(initial);
+  const [numberFrom, setNumberFrom] = useState(owner?.numberFrom ?? 1);
   const latestRepeat = useRef(repeat);
   latestRepeat.current = repeat;
+  const latestFrom = useRef(numberFrom);
+  latestFrom.current = numberFrom;
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef(fields);
@@ -54,42 +79,60 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   const set = <K extends keyof ItemFields>(key: K, value: ItemFields[K]) =>
     setFields((f) => ({ ...f, [key]: value }));
 
+  // With custom dates, the item's own date is the earliest chosen day.
+  const setRepeat = (r: RepeatValue) => {
+    setRepeatState(r);
+    if (r.preset === "dates" && r.dates?.length) set("date", fromYmd(r.dates[0]!));
+  };
+
   /** Saves the draft; returns the saved item, or null if nothing was kept. */
   const save = (): Item | null => batch(saveDraft);
 
   const saveDraft = (): Item | null => {
     const f = latest.current;
     const r = latestRepeat.current;
+    const from = latestFrom.current;
     const rule = ruleOf(r);
     const repeatChanged = !sameRepeat(r, initial);
     const stamp = new Date();
+    const raw = f.title.trim();
+    const numbered = hasNumberToken(raw);
+    // A one-off item with {n} just reads it as the starting number.
+    const firstTitle = numbered ? renderTitle(raw, 0, from) : raw;
+    const title = { template: raw, numberFrom: from };
 
     if (isNew) {
-      if (!f.title.trim()) return null;
-      let created = withFields(item, f, stamp);
-      if (rule) created = makeRepeating(created, rule, r.end);
+      if (!raw) return null;
+      let created = withFields(item, { ...f, title: firstTitle }, stamp);
+      if (rule) created = makeRepeating(created, rule, r.end, title);
       addItem(created);
       return created;
     }
 
-    let next = withFields(item, { ...f, title: f.title.trim() || item.title }, stamp);
-    if (!item.seriesId) {
-      if (rule) next = makeRepeating(next, rule, r.end);
+    if (!item.seriesId || !owner) {
+      let next = withFields(item, { ...f, title: raw ? firstTitle : item.title }, stamp);
+      if (rule && !item.seriesId) next = makeRepeating(next, rule, r.end, title);
       if (rule || differs(item, next)) saveItem(next);
       return next;
     }
 
     // Part of a series: date/time/notes edits apply to this occurrence;
-    // title/type also update the series so later occurrences match.
+    // the title (template) and type apply to the series.
+    const index = occurrenceIndex(owner, item);
+    const template = raw || owner.template.title;
+    const ownTitle = occurrenceTitle({ ...owner, template: { ...owner.template, title: template }, numberFrom: numbered ? from : undefined }, index);
+    const next = withFields(item, { ...f, title: ownTitle }, stamp);
     if (differs(item, next)) saveItem(next);
+
     if (repeatChanged) {
-      changeSeriesRule(item.seriesId, next, rule, r.end);
+      // Restarting from this occurrence: it keeps its number.
+      changeSeriesRule(item.seriesId, next, rule, r.end, stamp, { template, numberFrom: from + index });
       if (!rule) {
         const { seriesId: _, ...single } = next;
         return single;
       }
-    } else if (next.title !== item.title || next.type !== item.type) {
-      saveSeries(item.seriesId, next);
+    } else if (template !== owner.template.title || next.type !== owner.template.type || (numbered && from !== owner.numberFrom)) {
+      saveSeries(item.seriesId, { title: template, type: next.type, numberFrom: from });
     }
     return next;
   };
@@ -102,7 +145,7 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
 
   useDismiss(ref, close);
 
-  const preview = withFields(item, fields, new Date(now));
+  const preview = withFields(item, { ...fields, title: renderTitle(fields.title, 0, numberFrom) }, new Date(now));
 
   return (
     <li class="row grid-row row--editing">
@@ -124,11 +167,22 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
             }
           }}
         />
+        <TitleNumbering
+          title={fields.title}
+          onTitleChange={(v) => set("title", v)}
+          from={numberFrom}
+          onFromChange={setNumberFrom}
+          repeating={repeat.preset !== "none"}
+          count={occurrenceCount(repeat)}
+          offset={owner && sameRepeat(repeat, initial) ? occurrenceIndex(owner, item) : 0}
+          inputRef={titleRef}
+        />
 
         <TypeToggle value={fields.type} onChange={(v) => set("type", v)} />
 
         <div class="editor__when">
-          <DatePicker value={fields.date} onChange={(v) => set("date", v)} />
+          {/* Custom dates replace the single date with chips (in the repeat section). */}
+          {repeat.preset !== "dates" && <DatePicker value={fields.date} onChange={(v) => set("date", v)} />}
           <TimeField value={fields.time} onChange={(v) => set("time", v)} />
         </div>
 

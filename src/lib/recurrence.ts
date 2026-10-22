@@ -1,19 +1,26 @@
 import { toLocalISO } from "./dates";
 import { daysInMonth } from "./parse";
+import { renderTitle } from "./numbering";
 import { instantToWallTime, zonedTimeToInstant } from "./timezone";
 import type { Item, ItemType } from "./types";
 
 // Repeat rules are a subset of iCalendar RRULE (FREQ, INTERVAL, BYDAY,
-// UNTIL, COUNT) so imported and exported series map onto them directly.
+// UNTIL, COUNT) so imported and exported series map onto them directly,
+// plus "DATES": an explicit list of days chosen by the user.
 
-export type Freq = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+export type Freq = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "DATES";
 
 export interface RepeatRule {
   freq: Freq;
   interval: number;
   /** WEEKLY only: weekdays to repeat on, 0 = Sunday. */
   weekdays?: number[];
+  /** DATES only: local YYYY-MM-DD days, sorted; every occurrence uses the series' time. */
+  dates?: string[];
 }
+
+/** Upper bound on hand-picked dates in one series. */
+export const MAX_CUSTOM_DATES = 366;
 
 export type RepeatEnd =
   | { type: "never" }
@@ -38,6 +45,11 @@ export interface Series {
   /** iCalendar UID when imported; kept for duplicate detection and export. */
   uid?: string;
   /**
+   * Set when the title template numbers its occurrences ("Chapter {n}"):
+   * the number given to occurrence 0.
+   */
+  numberFrom?: number;
+  /**
    * IANA zone whose wall clock the series follows, when imported from a
    * calendar in another zone (e.g. a 9:30 IST meeting). Absent: local time.
    */
@@ -49,11 +61,25 @@ export const WINDOW = 6;
 
 // ── Presets offered in the editor ─────────────────────────────
 
-export type RepeatPreset = "none" | "daily" | "weekdays" | "weekly" | "biweekly" | "monthly" | "yearly" | "custom";
+export type RepeatPreset =
+  | "none"
+  | "daily"
+  | "weekdays"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "yearly"
+  /** Hand-picked dates. */
+  | "dates"
+  /** A rule that isn't one of the presets (e.g. imported). */
+  | "custom";
 
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
-export function presetRule(preset: Exclude<RepeatPreset, "none" | "custom">): RepeatRule {
+/** Presets that map to a fixed rule. */
+export type RulePreset = Exclude<RepeatPreset, "none" | "custom" | "dates">;
+
+export function presetRule(preset: RulePreset): RepeatRule {
   switch (preset) {
     case "daily":
       return { freq: "DAILY", interval: 1 };
@@ -72,6 +98,7 @@ export function presetRule(preset: Exclude<RepeatPreset, "none" | "custom">): Re
 
 export function presetOf(rule: RepeatRule | null): RepeatPreset {
   if (!rule) return "none";
+  if (rule.freq === "DATES") return "dates";
   const { freq, interval, weekdays } = rule;
   if (weekdays?.length) {
     return freq === "WEEKLY" && interval === 1 && weekdays.join() === WEEKDAYS.join() ? "weekdays" : "custom";
@@ -89,6 +116,10 @@ const shortWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
 export function describeRule(rule: RepeatRule, start: Date): string {
   const n = rule.interval;
   switch (rule.freq) {
+    case "DATES": {
+      const count = rule.dates?.length ?? 0;
+      return `On ${count} custom ${count === 1 ? "date" : "dates"}`;
+    }
     case "DAILY":
       return n === 1 ? "Daily" : `Every ${n} days`;
     case "WEEKLY": {
@@ -151,6 +182,15 @@ export function* occurrences(start: Date, rule: RepeatRule, timeZone?: string): 
     const fm = first.getUTCMonth();
     return at(fy, fm, Math.min(d, daysInMonth(fy, fm)));
   };
+
+  if (rule.freq === "DATES") {
+    // Each chosen day, in order, at the start's wall-clock time.
+    for (const day of [...new Set(rule.dates ?? [])].sort()) {
+      const [yy, mm, dd] = day.split("-").map(Number) as [number, number, number];
+      yield at(yy, mm - 1, dd);
+    }
+    return;
+  }
 
   const n = Math.max(1, Math.floor(rule.interval));
   yield new Date(start);
@@ -248,7 +288,7 @@ export function topUp(
           const stamp = toLocalISO(new Date(now));
           const item: Item = {
             id,
-            title: series.template.title,
+            title: occurrenceTitle(series, i),
             type: series.template.type,
             dateTime: toLocalISO(date),
             createdAt: stamp,
@@ -283,4 +323,15 @@ export function hasEnded(series: Series): boolean {
 export function wallDate(date: Date, timeZone?: string): Date {
   const w = timeZone ? instantToWallTime(date.getTime(), timeZone) : null;
   return w ? new Date(w.year, w.month - 1, w.day, w.hour, w.minute, w.second) : date;
+}
+
+/** Index of an occurrence within its series, from its deterministic id (the first occurrence is 0). */
+export function occurrenceIndex(series: Series, item: Item): number {
+  const prefix = `${series.id}~${series.epoch}~`;
+  return item.id.startsWith(prefix) ? Number(item.id.slice(prefix.length)) || 0 : 0;
+}
+
+/** The title of occurrence `index`: numbered when the series numbers its titles. */
+export function occurrenceTitle(series: Series, index: number): string {
+  return series.numberFrom === undefined ? series.template.title : renderTitle(series.template.title, index, series.numberFrom);
 }

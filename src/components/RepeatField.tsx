@@ -1,15 +1,18 @@
 import { useId } from "preact/hooks";
-import { addMonths } from "../lib/calendar";
+import { addMonths, fromYmd, toYmd } from "../lib/calendar";
 import type { DateParts } from "../lib/parse";
-import { describeRule, presetRule, type RepeatEnd, type RepeatPreset, type RepeatRule } from "../lib/recurrence";
+import { describeRule, presetRule, type RepeatEnd, type RepeatPreset, type RepeatRule, type RulePreset } from "../lib/recurrence";
 import { DatePicker } from "./DatePicker";
 import { Icon } from "./Icon";
+import { MultiDatePicker } from "./MultiDatePicker";
 
 export interface RepeatValue {
   preset: RepeatPreset;
   end: RepeatEnd;
   /** The original rule when it isn't one of the presets (e.g. imported). */
   custom?: RepeatRule;
+  /** Hand-picked days (YYYY-MM-DD, sorted) for the "dates" preset. */
+  dates?: string[];
 }
 
 export const NO_REPEAT: RepeatValue = { preset: "none", end: { type: "never" } };
@@ -17,18 +20,17 @@ export const NO_REPEAT: RepeatValue = { preset: "none", end: { type: "never" } }
 export function ruleOf(value: RepeatValue): RepeatRule | null {
   if (value.preset === "none") return null;
   if (value.preset === "custom") return value.custom ?? null;
+  if (value.preset === "dates") return value.dates?.length ? { freq: "DATES", interval: 1, dates: value.dates } : null;
   return presetRule(value.preset);
 }
 
 export function sameRepeat(a: RepeatValue, b: RepeatValue): boolean {
-  return a.preset === b.preset && JSON.stringify(a.end) === JSON.stringify(b.end);
+  return (
+    a.preset === b.preset &&
+    JSON.stringify(a.end) === JSON.stringify(b.end) &&
+    JSON.stringify(a.dates ?? []) === JSON.stringify(b.dates ?? [])
+  );
 }
-
-const toYmd = (p: DateParts) => `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
-const fromYmd = (s: string): DateParts => {
-  const [y, m, d] = s.split("-").map(Number) as [number, number, number];
-  return { year: y, month: m - 1, day: d };
-};
 
 interface Props {
   /** The item's date: option labels are phrased from it ("Weekly on Thursday"). */
@@ -41,7 +43,7 @@ interface Props {
 export function RepeatField({ date, value, onChange }: Props) {
   const ids = { count: useId() };
   const start = new Date(date.year, date.month, date.day);
-  const label = (p: Exclude<RepeatPreset, "none" | "custom">) => describeRule(presetRule(p), start);
+  const label = (p: RulePreset) => describeRule(presetRule(p), start);
   const options: [RepeatPreset, string][] = [
     ["none", "Does not repeat"],
     ["daily", label("daily")],
@@ -50,6 +52,7 @@ export function RepeatField({ date, value, onChange }: Props) {
     ["biweekly", label("biweekly")],
     ["monthly", label("monthly")],
     ["yearly", label("yearly")],
+    ["dates", "Custom dates…"],
   ];
   if (value.preset === "custom" && value.custom) options.push(["custom", describeRule(value.custom, start)]);
 
@@ -70,7 +73,12 @@ export function RepeatField({ date, value, onChange }: Props) {
         <select
           aria-label="Repeat"
           value={value.preset}
-          onChange={(e) => onChange({ ...value, preset: e.currentTarget.value as RepeatPreset })}
+          onChange={(e) => {
+            const preset = e.currentTarget.value as RepeatPreset;
+            // Custom dates start from the item's current date.
+            const dates = preset === "dates" && !value.dates?.length ? [toYmd(date)] : value.dates;
+            onChange({ ...value, preset, ...(dates ? { dates } : {}) });
+          }}
         >
           {options.map(([v, text]) => (
             <option key={v} value={v}>
@@ -81,14 +89,18 @@ export function RepeatField({ date, value, onChange }: Props) {
         <Icon name="chevronDown" />
       </div>
 
-      {value.preset !== "none" && (
+      {value.preset === "dates" && (
+        <MultiDatePicker dates={value.dates ?? []} onChange={(dates) => onChange({ ...value, dates })} />
+      )}
+
+      {value.preset !== "none" && value.preset !== "dates" && (
         <div class="repeat__end">
           <div class="repeat__end-row">
             <div class="select-field select-field--compact">
               <select aria-label="Ends" value={value.end.type} onChange={(e) => setEnd(e.currentTarget.value as RepeatEnd["type"])}>
                 <option value="never">Never ends</option>
-                <option value="until">Ends on date</option>
-                <option value="count">Ends after</option>
+                <option value="until">Until a date</option>
+                <option value="count">After a number of times</option>
               </select>
               <Icon name="chevronDown" />
             </div>

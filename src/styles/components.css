@@ -1452,6 +1452,9 @@ button.tile:active {
 
 .select-field select {
   appearance: none;
+  /* Fill the whole field so a click anywhere on it opens the menu. */
+  flex: 1;
+  width: 100%;
   min-width: 0;
   height: 100%;
   padding: 0 calc(var(--space-1) + 20px) 0 calc(var(--space-1) + 24px);
@@ -1900,5 +1903,142 @@ button.tile:active {
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation-duration: 2s;
+  }
+}
+
+/* ── Numbered titles ───────────────────────────────────────── */
+.numbering {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.numbering__insert {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-full);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-semibold);
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.numbering__insert:hover {
+  background: var(--color-accent-subtle);
+}
+
+.numbering__insert span,
+.numbering__label span {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-semibold);
+}
+
+.numbering__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.numbering__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.numbering__row .text-input--narrow {
+  height: 28px;
+  font-size: var(--text-sm);
+}
+
+.numbering__row .icon-button {
+  margin-left: auto;
+}
+
+.numbering__preview {
+  overflow: hidden;
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Custom dates ──────────────────────────────────────────── */
+.multi-dates {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.date-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-0-5);
+}
+
+.date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 2px 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  animation: popover-in var(--duration-fast) var(--ease-out);
+}
+
+.date-chip__remove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  color: inherit;
+}
+
+.date-chip__remove:hover {
+  background: var(--color-accent-subtle-hover);
+}
+
+.date-chip__remove .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.multi-dates__count {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.multi-dates__tip {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+}
+
+.calendar__day--disabled,
+.calendar__day--disabled:hover {
+  background: none;
+  color: var(--color-text-disabled);
+  cursor: default;
+  text-decoration: line-through;
+  text-decoration-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .date-chip {
+    animation: none;
   }
 }

@@ -1,5 +1,5 @@
 import ICAL from "ical.js";
-import { occurrences, wallDate, withinEnd, type RepeatEnd, type Series } from "./recurrence";
+import { occurrenceId, occurrenceIndex, occurrences, occurrenceTitle, wallDate, withinEnd, type RepeatEnd, type Series } from "./recurrence";
 import { zonedTimeToInstant } from "./timezone";
 import { buildVtimezone } from "./vtimezone";
 import type { Item } from "./types";
@@ -37,11 +37,7 @@ const floating = (d: Date, isDate = false) =>
 
 const utc = (d: Date) => ICAL.Time.fromJSDate(d, true);
 
-/** Index of an occurrence within its series, from its deterministic id (the first occurrence is 0). */
-export function occurrenceIndex(series: Series, item: Item): number {
-  const prefix = `${series.id}~${series.epoch}~`;
-  return item.id.startsWith(prefix) ? Number(item.id.slice(prefix.length)) || 0 : 0;
-}
+export { occurrenceIndex } from "./recurrence";
 
 /**
  * RRULE for a series exported from occurrence `fromIndex`.
@@ -187,6 +183,52 @@ function seriesEvents(series: Series, upcoming: Item[], allItems: readonly Item[
   return out;
 }
 
+/** Most events written for one series exported occurrence by occurrence. */
+const MAX_LISTED = 104;
+
+/**
+ * Whether a series must be exported as separate events: hand-picked dates
+ * have no RRULE equivalent, and numbered titles differ per occurrence.
+ */
+export const exportsAsList = (series: Series) => series.rule.freq === "DATES" || series.numberFrom !== undefined;
+
+/**
+ * Separate VEVENTs for each upcoming occurrence: existing ones as they are
+ * (moved dates and all), later ones generated from the template. Endless
+ * series stop after MAX_LISTED events.
+ */
+function listedEvents(series: Series, upcoming: Item[], allItems: readonly Item[], now: Date): ICAL.Component[] {
+  const fromIndex = occurrenceIndex(series, upcoming[0]!);
+  const byId = new Map(allItems.filter((i) => i.seriesId === series.id).map((i) => [i.id, i]));
+  const out: ICAL.Component[] = [];
+  let i = 0;
+  for (const date of occurrencesFrom(series)) {
+    if (!withinEndOf(series, date, i) || out.length >= MAX_LISTED) break;
+    if (i >= fromIndex) {
+      if (i < series.nextIndex) {
+        // Already generated: export what exists (removed ones are skipped).
+        const item = i === fromIndex ? upcoming[0] : byId.get(occurrenceId(series, i));
+        if (item && !item.completedAt) out.push(occurrenceEvent(series, item, i, now));
+      } else {
+        const item: Item = {
+          id: occurrenceId(series, i),
+          title: occurrenceTitle(series, i),
+          type: series.template.type,
+          dateTime: date.toISOString(),
+          createdAt: "",
+          updatedAt: "",
+          source: "manual",
+          ...(series.allDay ? { allDay: true } : {}),
+          ...(series.template.notes ? { notes: series.template.notes } : {}),
+        };
+        out.push(occurrenceEvent(series, item, i, now));
+      }
+    }
+    if (++i > 100_000) break;
+  }
+  return out;
+}
+
 /** A single occurrence exported on its own (moved, or outside the exported rule). */
 function occurrenceEvent(series: Series, item: Item, index: number, now: Date) {
   const ev = itemEvent(item, now);
@@ -208,7 +250,7 @@ export function buildIcs(entries: readonly ExportEntry[], allItems: readonly Ite
   // One VTIMEZONE per zone used by a zoned series.
   const zones = new Map<string, Date>();
   for (const e of entries) {
-    if (e.kind === "series" && e.series.timeZone && !e.series.allDay && !zones.has(e.series.timeZone)) {
+    if (e.kind === "series" && e.series.timeZone && !e.series.allDay && !exportsAsList(e.series) && !zones.has(e.series.timeZone)) {
       zones.set(e.series.timeZone, new Date(e.upcoming[0]?.dateTime ?? e.series.start));
     }
   }
@@ -216,7 +258,11 @@ export function buildIcs(entries: readonly ExportEntry[], allItems: readonly Ite
 
   for (const entry of entries) {
     const events =
-      entry.kind === "item" ? [itemEvent(entry.item, now)] : seriesEvents(entry.series, entry.upcoming, allItems, now);
+      entry.kind === "item"
+        ? [itemEvent(entry.item, now)]
+        : exportsAsList(entry.series)
+          ? listedEvents(entry.series, entry.upcoming, allItems, now)
+          : seriesEvents(entry.series, entry.upcoming, allItems, now);
     for (const ev of events) cal.addSubcomponent(ev);
   }
   // RFC 5545 requires every content line, including the last, to end in CRLF.

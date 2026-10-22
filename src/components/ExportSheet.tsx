@@ -3,7 +3,7 @@ import { useRef, useState } from "preact/hooks";
 import { useSheetHeight } from "../hooks/useSheetHeight";
 import { downloadFile } from "../lib/download";
 import { GCAL_IMPORT_URL, googleCalendarUrl } from "../lib/gcal";
-import { buildIcs, exportFileName, type ExportEntry } from "../lib/ics";
+import { buildIcs, exportFileName, exportsAsList, type ExportEntry } from "../lib/ics";
 import { exitSelection, selected, splitKeys } from "../state/selection";
 import { items, removeMany } from "../state/store";
 import { Icon, type IconName } from "./Icon";
@@ -34,7 +34,10 @@ export function ExportSheet({ entries, state }: Props) {
   };
 
   const addToGoogle = () => {
-    if (n === 1) {
+    // Google's link makes one event (or one repeat rule); custom-date and
+    // numbered series need several events, so they go through a file.
+    const single = entries[0];
+    if (n === 1 && !(single?.kind === "series" && exportsAsList(single.series))) {
       window.open(googleCalendarUrl(entries[0]!), "_blank", "noopener");
       setNote({ text: "Opened a prefilled event in Google Calendar. Check the details there and save it." });
       return;
@@ -86,7 +89,7 @@ export function ExportSheet({ entries, state }: Props) {
         <SheetAction
           icon="calendar"
           label="Google Calendar"
-          hint={n > 1 ? "Imports via a file" : "Opens a new event"}
+          hint={n === 1 && !(entries[0]?.kind === "series" && exportsAsList(entries[0].series)) ? "Opens a new event" : "Imports via a file"}
           disabled={n === 0}
           onClick={addToGoogle}
         />

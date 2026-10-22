@@ -1,4 +1,4 @@
-import type { RepeatEnd, RepeatRule, Series } from "./recurrence";
+import { MAX_CUSTOM_DATES, type RepeatEnd, type RepeatRule, type Series } from "./recurrence";
 import { isValidTimeZone } from "./timezone";
 import type { CompletionRecord, Item, Unit } from "./types";
 
@@ -105,6 +105,7 @@ export function isItem(v: unknown): v is Item {
     (o.allDay === undefined || typeof o.allDay === "boolean") &&
     isOptionalString(o.notes) &&
     isOptionalString(o.uid) &&
+    (o.numberFrom === undefined || Number.isInteger(o.numberFrom)) &&
     isOptionalString(o.seriesId) &&
     (o.completedAt === undefined || isDateString(o.completedAt))
   );
@@ -138,7 +139,8 @@ export function parsePrefs(v: unknown): Prefs {
   };
 }
 
-const FREQS = new Set<unknown>(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
+const FREQS = new Set<unknown>(["DAILY", "WEEKLY", "MONTHLY", "YEARLY", "DATES"]);
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const isPositiveInt = (v: unknown) => Number.isInteger(v) && (v as number) > 0;
 
 function isRule(v: unknown): v is RepeatRule {
@@ -148,7 +150,11 @@ function isRule(v: unknown): v is RepeatRule {
     FREQS.has(o.freq) &&
     isPositiveInt(o.interval) &&
     (o.weekdays === undefined ||
-      (Array.isArray(o.weekdays) && o.weekdays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)))
+      (Array.isArray(o.weekdays) && o.weekdays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) &&
+    // DATES needs its list; other rules must not carry one.
+    (o.freq === "DATES"
+      ? Array.isArray(o.dates) && o.dates.length > 0 && o.dates.length <= MAX_CUSTOM_DATES && o.dates.every((d) => isString(d) && YMD.test(d))
+      : o.dates === undefined)
   );
 }
 

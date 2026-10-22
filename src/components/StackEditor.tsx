@@ -4,14 +4,18 @@ import { relativeLabel } from "../lib/countdown";
 import { formatItemDate, formatShortDateTime } from "../lib/dates";
 import { formatTime } from "../lib/parse";
 import type { Item, ItemType, Unit } from "../lib/types";
-import { presetOf } from "../lib/recurrence";
+import { fromYmd } from "../lib/calendar";
+import { toLocalISO } from "../lib/dates";
+import { occurrenceIndex } from "../lib/recurrence";
 import { changeSeriesRule, removeItems, removeSeries, saveSeries, series } from "../state/store";
 import { completing, editing, focusTile, startCompletion } from "../state/ui";
 import { Checkbox } from "./Checkbox";
 import { CountdownBox } from "./CountdownBox";
 import { SelectCell } from "./SelectCell";
 import { Icon } from "./Icon";
+import { occurrenceCount, repeatOf } from "./ItemEditor";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
+import { TitleNumbering } from "./TitleNumbering";
 import { TypeToggle } from "./TypeToggle";
 
 const partsOf = (iso: string) => {
@@ -33,18 +37,18 @@ interface Props {
  */
 export function StackEditorRow({ seriesId, items, unit, now }: Props) {
   const head = items[0]!;
-  const [title, setTitle] = useState(head.title);
+  const [owner] = useState(() => series.value.find((x) => x.id === seriesId));
+  // A numbered series edits its template ("Chapter {n}"), not the head's title.
+  const [title, setTitle] = useState(owner?.numberFrom !== undefined ? owner.template.title : head.title);
   const [type, setType] = useState<ItemType>(head.type);
+  const [numberFrom, setNumberFrom] = useState(owner?.numberFrom ?? 1);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [initialRepeat] = useState<RepeatValue>(() => {
-    const s = series.value.find((x) => x.id === seriesId);
-    if (!s) return NO_REPEAT;
-    const preset = presetOf(s.rule);
-    return preset === "custom" ? { preset, end: s.end, custom: s.rule } : { preset, end: s.end };
-  });
+  const [initialRepeat] = useState<RepeatValue>(() => repeatOf(owner, head));
   const [repeat, setRepeat] = useState(initialRepeat);
   const latestRepeat = useRef(repeat);
   latestRepeat.current = repeat;
+  const latestFrom = useRef(numberFrom);
+  latestFrom.current = numberFrom;
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef({ title, type });
@@ -61,12 +65,23 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
 
   const close = (reason: DismissReason | "enter") => {
     const r = latestRepeat.current;
+    const from = latestFrom.current;
+    const { title: t, type: ty } = latest.current;
+    const template = t.trim() || (owner?.template.title ?? head.title);
     // Only series with a stored rule can be restarted; others just get renamed.
-    if (!sameRepeat(r, initialRepeat) && initialRepeat !== NO_REPEAT) {
-      const { title: t, type: ty } = latest.current;
-      changeSeriesRule(seriesId, { ...head, title: t.trim() || head.title, type: ty }, ruleOf(r), r.end);
+    if (owner && !sameRepeat(r, initialRepeat) && initialRepeat !== NO_REPEAT) {
+      const rule = ruleOf(r);
+      // Restart from the next occurrence, which keeps its number. With custom
+      // dates it moves to the earliest chosen day (same time of day).
+      let anchor: Item = { ...head, type: ty };
+      if (rule?.freq === "DATES" && rule.dates?.length) {
+        const day = fromYmd(rule.dates[0]!);
+        const at = new Date(head.dateTime);
+        anchor = { ...anchor, dateTime: toLocalISO(new Date(day.year, day.month, day.day, at.getHours(), at.getMinutes())) };
+      }
+      changeSeriesRule(seriesId, anchor, rule, r.end, new Date(), { template, numberFrom: from + occurrenceIndex(owner, head) });
     } else {
-      saveSeries(seriesId, latest.current);
+      saveSeries(seriesId, { title: template, type: ty, numberFrom: from });
     }
     editing.value = null;
     if (reason !== "outside") focusTile(items[0]!.id);
@@ -102,6 +117,16 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
               close("enter");
             }
           }}
+        />
+        <TitleNumbering
+          title={title}
+          onTitleChange={setTitle}
+          from={numberFrom}
+          onFromChange={setNumberFrom}
+          repeating={owner !== undefined}
+          count={occurrenceCount(repeat)}
+          offset={owner && sameRepeat(repeat, initialRepeat) ? occurrenceIndex(owner, head) : 0}
+          inputRef={titleRef}
         />
         <TypeToggle value={type} onChange={setType} />
         {initialRepeat !== NO_REPEAT && (
