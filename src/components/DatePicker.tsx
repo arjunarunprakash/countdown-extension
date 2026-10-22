@@ -12,6 +12,7 @@ import {
 } from "../lib/calendar";
 import { formatTypedDate, parseTypedDate, type DateParts } from "../lib/parse";
 import { Icon } from "./Icon";
+import { Popover } from "./Popover";
 
 interface Props {
   value: DateParts;
@@ -70,11 +71,6 @@ export function DatePicker({ value, onChange, label = "Date" }: Props) {
     moveFocus.current = true;
     setOpen(true);
   };
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    popoverRef.current?.scrollIntoView({ block: "nearest" });
-  }, [open]);
 
   // Move DOM focus to the active day after keyboard navigation or opening.
   // Layout effect so focus moves in the same frame as the DOM update.
@@ -150,7 +146,14 @@ export function DatePicker({ value, onChange, label = "Date" }: Props) {
       </button>
 
       {open && (
-        <div ref={popoverRef} class="popover popover--date" role="dialog" aria-modal="false" aria-labelledby={ids.title}>
+        <Popover
+          anchor={triggerRef}
+          popoverRef={popoverRef}
+          class="popover--date"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby={ids.title}
+        >
           <div class="calendar__header">
             <button
               type="button"
@@ -239,7 +242,7 @@ export function DatePicker({ value, onChange, label = "Date" }: Props) {
               </p>
             )}
           </div>
-        </div>
+        </Popover>
       )}
     </div>
   );

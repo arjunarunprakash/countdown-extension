@@ -5,6 +5,7 @@ import { ItemRow } from "../components/ItemRow";
 import { EmptyState } from "../components/EmptyState";
 import { CompletedSection, OverdueSection } from "../components/Sections";
 import { Toast } from "../components/Toast";
+import { TooltipLayer } from "../components/TooltipLayer";
 import { newItem } from "../lib/items";
 import { buildRows } from "../lib/rows";
 import type { Row } from "../lib/types";
@@ -50,6 +51,7 @@ export function App() {
         <CompletedSection items={completed} now={t} />
       </main>
       <Toast />
+      <TooltipLayer />
     </div>
   );
 }

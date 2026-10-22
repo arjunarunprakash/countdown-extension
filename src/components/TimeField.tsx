@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { formatTime, nearestTimeOption, parseTime, TIME_OPTIONS, type TimeParts } from "../lib/parse";
 import { Icon } from "./Icon";
+import { Popover } from "./Popover";
 
 interface Props {
   /** null means all-day. */
@@ -22,6 +23,7 @@ export function TimeField({ value, onChange }: Props) {
   const [navigated, setNavigated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const ids = { list: useId(), error: useId(), option: useId() };
 
@@ -30,11 +32,19 @@ export function TimeField({ value, onChange }: Props) {
     if (!open) setText(value ? formatTime(value) : "");
   }, [value?.hour, value?.minute, value === null]);
 
+  // Keep the active option visible by scrolling the list itself (not the page).
   useLayoutEffect(() => {
-    if (!open) return;
-    listRef.current
-      ?.querySelector(`#${CSS.escape(`${ids.option}-${active}`)}`)
-      ?.scrollIntoView({ block: navigated ? "nearest" : "center" });
+    const list = listRef.current;
+    if (!open || !list) return;
+    const option = list.querySelector<HTMLElement>(`#${CSS.escape(`${ids.option}-${active}`)}`);
+    if (!option) return;
+    if (!navigated) {
+      list.scrollTop = option.offsetTop - (list.clientHeight - option.offsetHeight) / 2;
+    } else if (option.offsetTop < list.scrollTop) {
+      list.scrollTop = option.offsetTop;
+    } else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) {
+      list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
+    }
   }, [open, active]);
 
   const show = () => {
@@ -94,7 +104,7 @@ export function TimeField({ value, onChange }: Props) {
 
   return (
     <div class="time-field">
-      <div class={`field-button field-button--input${error ? " field-button--invalid" : ""}`}>
+      <div ref={fieldRef} class={`field-button field-button--input${error ? " field-button--invalid" : ""}`}>
         <Icon name="clock" />
         <input
           ref={inputRef}
@@ -128,7 +138,8 @@ export function TimeField({ value, onChange }: Props) {
         />
       </div>
       {open && (
-        <ul ref={listRef} id={ids.list} class="popover popover--list" role="listbox" aria-label="Times">
+        <Popover anchor={fieldRef} matchWidth class="popover--list">
+        <ul ref={listRef} id={ids.list} class="listbox" role="listbox" aria-label="Times">
           {TIME_OPTIONS.map((t, i) => (
             <li
               key={i}
@@ -144,6 +155,7 @@ export function TimeField({ value, onChange }: Props) {
             </li>
           ))}
         </ul>
+        </Popover>
       )}
       {error && (
         <p id={ids.error} class="field-error" role="alert">

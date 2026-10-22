@@ -103,59 +103,32 @@
 }
 
 /* ── Tooltip ───────────────────────────────────────────────────
-   Pure CSS, driven by data-tooltip. The accessible name always comes
-   from aria-label/visible text; the tooltip is a visual aid only. */
-[data-tooltip] {
-  position: relative;
-}
-
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  top: calc(100% + var(--space-0-5));
-  left: 50%;
-  z-index: 10;
+   A single top-layer element managed by components/TooltipLayer.tsx,
+   driven by data-tooltip attributes. Visual only; anchors carry the same
+   text as their accessible name. */
+.tooltip {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  max-width: min(280px, calc(100vw - var(--space-2)));
   padding: var(--space-0-5) var(--space-1);
+  border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-inverse-bg);
   color: var(--color-inverse-text);
   backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-raised);
   font-size: var(--text-sm);
   line-height: var(--leading-sm);
   font-weight: var(--weight-medium);
-  letter-spacing: normal;
-  text-transform: none;
-  white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -2px);
-  transition: opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+  animation: tooltip-in var(--duration-fast) var(--ease-out);
 }
 
-[data-tooltip-align="start"]::after {
-  left: 0;
-  transform: translate(0, -2px);
-}
-
-[data-tooltip-align="end"]::after {
-  left: auto;
-  right: 0;
-  transform: translate(0, -2px);
-}
-
-[data-tooltip]:hover::after,
-[data-tooltip]:focus-visible::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  transition-delay: 400ms;
-}
-
-[data-tooltip-align="start"]:hover::after,
-[data-tooltip-align="start"]:focus-visible::after,
-[data-tooltip-align="end"]:hover::after,
-[data-tooltip-align="end"]:focus-visible::after {
-  transform: translate(0, 0);
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ── List ──────────────────────────────────────────────────── */
@@ -838,13 +811,21 @@ button.tile:active {
   box-shadow: 0 0 0 1px var(--color-danger);
 }
 
-/* ── Popovers ──────────────────────────────────────────────── */
+/* ── Popovers ─────────────────────────────────────────────────
+   Rendered in the top layer (HTML Popover API) and positioned with
+   position: fixed by components/Popover.tsx, so they always paint above
+   tiles and glass stacking contexts. These rules reset the browser's
+   default [popover] styles. */
 .popover {
-  position: absolute;
-  top: calc(100% + var(--space-0-5));
-  z-index: 20;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  max-width: calc(100vw - var(--space-2));
+  overflow: auto;
   border-radius: var(--radius-md);
   background: var(--glass-fill-strong);
+  color: var(--color-text);
   animation: popover-in var(--duration-fast) var(--ease-out);
 }
 
@@ -855,10 +836,18 @@ button.tile:active {
   }
 }
 
-/* The date button is the first control in the editor, so the popover can
-   shift left by a known amount to span the whole row on narrow panels. */
+.popover[data-side="top"] {
+  animation-name: popover-in-up;
+}
+
+@keyframes popover-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .popover--date {
-  left: calc(-1 * (var(--size-countdown-col) + var(--space-1) + 1px + var(--space-tile-inline, var(--space-2))));
   width: min(300px, calc(100vw - var(--space-2) * 2));
   padding: var(--space-1-5);
 }
@@ -933,9 +922,16 @@ button.tile:active {
 }
 
 .popover--list {
-  left: 0;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
   min-width: 120px;
+  overflow: hidden;
+}
+
+.listbox {
+  position: relative; /* offsetParent for scrolling the active option */
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 216px;
   margin: 0;
   padding: var(--space-0-5);
