@@ -21,6 +21,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The background gradient is fixed to the panel so glass surfaces
+   scroll over it and blur different parts of it. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--gradient-bg);
+  pointer-events: none;
+}
+
 h1,
 h2,
 h3,

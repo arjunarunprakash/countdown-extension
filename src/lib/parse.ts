@@ -63,7 +63,8 @@ export function parseTime(text: string): TimeParts | null {
 
 export function formatTime({ hour, minute }: TimeParts): string {
   const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
+  // No-break space keeps "3:00 PM" together when text wraps.
+  return `${h12}:${String(minute).padStart(2, "0")}\u00a0${hour < 12 ? "AM" : "PM"}`;
 }
 
 /** Every 15 minutes from 12:00 AM to 11:45 PM. */

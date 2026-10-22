@@ -30,8 +30,8 @@ export function Toast() {
   useEffect(() => {
     if (!t?.action) return;
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest("input, textarea, [contenteditable]")) return;
+      // Let text fields keep their own undo.
+      if (e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) return;
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
         t.action!.run();

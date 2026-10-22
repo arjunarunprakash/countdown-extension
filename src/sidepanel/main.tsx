@@ -5,9 +5,12 @@ import "../styles/base.css";
 import "../styles/components.css";
 import { startClock } from "../state/clock";
 import { addItem, initStore, items } from "../state/store";
+import { applyCachedTheme, syncTheme } from "../state/theme";
 import { App } from "./App";
 
+applyCachedTheme();
 await initStore();
+syncTheme();
 startClock();
 
 // Development builds only: open the panel with ?seed to load sample data into an empty list.

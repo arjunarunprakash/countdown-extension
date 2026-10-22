@@ -3,8 +3,8 @@ import { formatItemDate, toLocalISO } from "../src/lib/dates";
 
 describe("formatItemDate", () => {
   it("formats as 'Weekday, D Month YYYY, h:mm AM'", () => {
-    expect(formatItemDate(new Date(2026, 9, 29, 15, 0))).toBe("Thursday, 29 October 2026, 3:00 PM");
-    expect(formatItemDate(new Date(2026, 0, 5, 0, 5))).toBe("Monday, 5 January 2026, 12:05 AM");
+    expect(formatItemDate(new Date(2026, 9, 29, 15, 0))).toBe("Thursday, 29 October 2026, 3:00\u00a0PM");
+    expect(formatItemDate(new Date(2026, 0, 5, 0, 5))).toBe("Monday, 5 January 2026, 12:05\u00a0AM");
   });
 
   it("omits the time for all-day items", () => {

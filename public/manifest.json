@@ -3,7 +3,7 @@
   "name": "Countdown",
   "version": "0.1.0",
   "description": "Live countdowns to your deadlines and events, in Chrome's side panel.",
-  "minimum_chrome_version": "116",
+  "minimum_chrome_version": "123",
   "permissions": ["sidePanel", "storage"],
   "optional_host_permissions": ["https://*/*"],
   "background": {

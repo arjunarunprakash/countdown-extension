@@ -6,7 +6,7 @@ A minimal Chrome extension that lists your deadlines and event start times in Ch
 
 ## Setup
 
-Requires Node 24 LTS (ships with npm 11) and Chrome 116+.
+Requires Node 24 LTS (ships with npm 11) and Chrome 123+.
 
 ```bash
 npm ci
@@ -52,7 +52,9 @@ tests/             Vitest unit tests
 
 ## Product decisions
 
-- **Past items.** Past items move to a collapsible **Past** section at the bottom. A Due item that has passed shows "Overdue" in red; a Starts item that has passed shows "Started".
+- **Bottom sections.** Two collapsible sections sit below the upcoming list, and each remembers whether it was open:
+  - **Overdue:** items whose time has passed without being completed. Due items show "Overdue" in red; Starts items show "Started". Started events go here rather than in Completed so the completion stats only count things you actually checked off.
+  - **Completed:** newest first, each showing the exact time it was completed and its original date. **Mark as not done** moves an item back to the list and drops its completion record. **Clear** removes completed items from the list but keeps their records for stats. Both can be undone. The list shows 20 at a time.
 - **Countdown values.** Countdowns round down to whole units. Under one unit, the box shows `<1`. Values up to 9,999 show in full with commas; larger values are abbreviated (`12.4K`, `2.6M`). The tooltip shows the exact time left.
 - **Recurring events become stacks.** Occurrences of one recurring event are grouped into a single stacked tile, headed by the next occurrence. When that occurrence is completed it disappears; when it passes, it moves to Past. Either way, the next occurrence moves to the top. Opening a stack fans it out to edit, complete or remove occurrences individually or in bulk.
 - **Completing items.** "Complete" sits next to "Remove" in a tile's edit state and plays a short completion animation. Each completion is saved as its own record, so stats survive even if the item is later removed.
@@ -60,5 +62,6 @@ tests/             Vitest unit tests
 - **Editing.** Changes save when the editor closes: press Escape, press Enter in the title, or click anywhere outside it. Clearing the time makes an item all-day. Typed times accept `3pm`, `3:30 p.m.`, `15:00`, `1500`, `noon` and `midnight`; a bare number such as `9` is read as 24-hour time.
 - **Undo.** Removing or completing shows a toast with Undo for 5 seconds. The timer pauses while you hover over or focus the toast, and Cmd/Ctrl+Z also undoes. A new toast replaces the previous one, and the earlier change stands.
 - **Open stacks.** An expanded stack spans the full row. You can rename the series, switch Due/Starts for every occurrence at once, and complete or remove occurrences one at a time or in bulk with Select all and Remove selected.
+- **Look and theme.** Surfaces use a frosted-glass material (translucent fill, backdrop blur, bright hairline edge) over a soft fixed gradient. The header's theme button cycles **System → Light → Dark**; the choice is saved, and the panel cross-fades between themes. Text contrast is checked against the most saturated part of the gradient. With *Reduce transparency* turned on in the OS, surfaces become solid.
 - **Dates.** Dates always display as `Thursday, 29 October 2026, 3:00 PM`; typed dates use MM/DD/YYYY. Times are stored with their UTC offset and exported in UTC.
 - **All-day events.** Items imported as all-day events show no time and count down to the start of that day.

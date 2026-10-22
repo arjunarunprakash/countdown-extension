@@ -2,7 +2,7 @@ import { useMemo } from "preact/hooks";
 import { Header } from "../components/Header";
 import { EditorRow } from "../components/ItemEditor";
 import { ItemRow } from "../components/ItemRow";
-import { PastSection } from "../components/PastSection";
+import { CompletedSection, OverdueSection } from "../components/Sections";
 import { Toast } from "../components/Toast";
 import { newItem } from "../lib/items";
 import { buildRows } from "../lib/rows";
@@ -24,12 +24,12 @@ function startNew() {
 export function App() {
   const t = now.value;
   const list = items.value;
-  const { upcoming, past } = useMemo(() => buildRows(list, t), [list, t]);
+  const { upcoming, overdue, completed } = useMemo(() => buildRows(list, t), [list, t]);
   if (!ready.value) return null;
 
   const unit = prefs.value.unit;
   const e = editing.value;
-  const isEmpty = upcoming.length === 0 && past.length === 0 && e?.kind !== "new";
+  const isEmpty = upcoming.length === 0 && overdue.length === 0 && completed.length === 0 && e?.kind !== "new";
 
   return (
     <div class="app">
@@ -43,7 +43,8 @@ export function App() {
             <ItemRow key={rowKey(row)} row={row} unit={unit} now={t} />
           ))}
         </ul>
-        <PastSection items={past} unit={unit} now={t} />
+        <OverdueSection items={overdue} unit={unit} now={t} />
+        <CompletedSection items={completed} now={t} />
       </main>
       <Toast />
     </div>

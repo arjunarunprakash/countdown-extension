@@ -2,12 +2,21 @@ import type { CompletionRecord, Item, Unit } from "./types";
 
 export const SCHEMA_VERSION = 1;
 
+export type Theme = "system" | "light" | "dark";
+
 export interface Prefs {
   unit: Unit;
-  pastCollapsed: boolean;
+  theme: Theme;
+  overdueCollapsed: boolean;
+  completedCollapsed: boolean;
 }
 
-export const DEFAULT_PREFS: Prefs = { unit: "days", pastCollapsed: false };
+export const DEFAULT_PREFS: Prefs = {
+  unit: "days",
+  theme: "system",
+  overdueCollapsed: false,
+  completedCollapsed: true,
+};
 
 export interface StoredState {
   items: Item[];
@@ -45,7 +54,12 @@ export function localStorageBackend(prefix = "countdown:"): StorageBackend {
       const out: Record<string, unknown> = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)!;
-        if (key.startsWith(prefix)) out[key.slice(prefix.length)] = JSON.parse(localStorage.getItem(key)!);
+        if (!key.startsWith(prefix)) continue;
+        try {
+          out[key.slice(prefix.length)] = JSON.parse(localStorage.getItem(key)!);
+        } catch {
+          // Unreadable entry: skip it; validation falls back to defaults.
+        }
       }
       return out;
     },
@@ -107,12 +121,17 @@ function isCompletion(v: unknown): v is CompletionRecord {
 }
 
 const UNITS_SET = new Set<unknown>(["days", "hours", "minutes", "seconds"]);
+const THEMES = new Set<unknown>(["system", "light", "dark"]);
+const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
 
 export function parsePrefs(v: unknown): Prefs {
   const o = (typeof v === "object" && v !== null ? v : {}) as Record<string, unknown>;
   return {
     unit: UNITS_SET.has(o.unit) ? (o.unit as Unit) : DEFAULT_PREFS.unit,
-    pastCollapsed: typeof o.pastCollapsed === "boolean" ? o.pastCollapsed : DEFAULT_PREFS.pastCollapsed,
+    theme: THEMES.has(o.theme) ? (o.theme as Theme) : DEFAULT_PREFS.theme,
+    // Before the Overdue/Completed split, the single bottom section was "pastCollapsed".
+    overdueCollapsed: bool(o.overdueCollapsed, bool(o.pastCollapsed, DEFAULT_PREFS.overdueCollapsed)),
+    completedCollapsed: bool(o.completedCollapsed, DEFAULT_PREFS.completedCollapsed),
   };
 }
 

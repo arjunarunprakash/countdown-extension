@@ -87,6 +87,40 @@ export function removeItems(ids: Iterable<string>) {
   });
 }
 
+/** Removes every completed item from the list. Completion records (stats) are kept. */
+export function clearCompleted() {
+  const ids = items.value.filter((i) => i.completedAt).map((i) => i.id);
+  const { next, removed } = ops.removeIds(items.value, new Set(ids));
+  if (removed.length === 0) return;
+  setItems(next);
+  showToast({
+    message: `Cleared ${removed.length} completed`,
+    action: { label: "Undo", run: () => setItems(ops.restore(items.value, removed)) },
+  });
+}
+
+/** Moves a completed item back to the list and drops its completion record. */
+export function uncompleteItem(id: string) {
+  const record = completions.value.findLast((c) => c.itemId === id);
+  const completedAt = items.value.find((i) => i.id === id)?.completedAt;
+  if (!completedAt) return;
+  batch(() => {
+    setItems(ops.uncomplete(items.value, id));
+    if (record) setCompletions(completions.value.filter((c) => c.id !== record.id));
+  });
+  showToast({
+    message: "Marked as not done",
+    action: {
+      label: "Undo",
+      run: () =>
+        batch(() => {
+          setItems(items.value.map((i) => (i.id === id ? { ...i, completedAt } : i)));
+          if (record) setCompletions([...completions.value, record]);
+        }),
+    },
+  });
+}
+
 export function completeItem(id: string, now = new Date()) {
   const result = ops.complete(items.value, id, now);
   if (!result) return;

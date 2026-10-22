@@ -19,7 +19,7 @@ function item(id: string, dateTime: string, extra: Partial<Item> = {}): Item {
 
 describe("buildRows", () => {
   it("sorts upcoming items soonest first and past items most recent first", () => {
-    const { upcoming, past } = buildRows(
+    const { upcoming, overdue: past } = buildRows(
       [
         item("later", "2026-11-01T00:00:00Z"),
         item("old", "2026-10-01T00:00:00Z"),
@@ -33,7 +33,7 @@ describe("buildRows", () => {
   });
 
   it("collapses a series into one stack headed by its next occurrence", () => {
-    const { upcoming, past } = buildRows(
+    const { upcoming, overdue: past } = buildRows(
       [
         item("s3", "2026-11-04T10:00:00Z", { seriesId: "s" }),
         item("s1", "2026-10-14T10:00:00Z", { seriesId: "s" }),
@@ -55,8 +55,8 @@ describe("buildRows", () => {
     expect(upcoming[0]!.kind).toBe("single");
   });
 
-  it("excludes completed items everywhere", () => {
-    const { upcoming, past } = buildRows(
+  it("puts completed items only in the completed section, newest first", () => {
+    const { upcoming, overdue, completed } = buildRows(
       [
         item("done-future", "2026-11-01T00:00:00Z", { completedAt: "2026-10-20T00:00:00Z" }),
         item("done-past", "2026-10-01T00:00:00Z", { completedAt: "2026-09-30T00:00:00Z" }),
@@ -64,11 +64,12 @@ describe("buildRows", () => {
       now,
     );
     expect(upcoming).toEqual([]);
-    expect(past).toEqual([]);
+    expect(overdue).toEqual([]);
+    expect(completed.map((i) => i.id)).toEqual(["done-future", "done-past"]);
   });
 
   it("treats an item due exactly now as past", () => {
-    const { upcoming, past } = buildRows([item("now", "2026-10-21T12:00:00Z")], now);
+    const { upcoming, overdue: past } = buildRows([item("now", "2026-10-21T12:00:00Z")], now);
     expect(upcoming).toEqual([]);
     expect(past).toHaveLength(1);
   });

@@ -18,7 +18,12 @@ export function formatItemDate(date: Date, allDay = false): string {
     datePart.formatToParts(date).map((p) => [p.type, p.value]),
   ) as Record<string, string>;
   const day = `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}`;
-  return allDay ? day : `${day}, ${timePart.format(date)}`;
+  return allDay ? day : `${day}, ${formatClock(date)}`;
+}
+
+/** "3:00 PM" with a no-break space, so line wrapping never strands "PM". */
+export function formatClock(date: Date): string {
+  return timePart.format(date).replace(/\s+(?=[AP]M$)/, "\u00a0");
 }
 
 /** Local wall-clock time as ISO 8601 with the current UTC offset. */
@@ -40,5 +45,5 @@ const shortDateYear = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: 
 export function formatShortDateTime(date: Date, allDay = false, now = new Date()): string {
   const fmt = date.getFullYear() === now.getFullYear() ? shortDate : shortDateYear;
   const day = fmt.format(date).replace(",", "");
-  return allDay ? day : `${day}, ${timePart.format(date)}`;
+  return allDay ? day : `${day}, ${formatClock(date)}`;
 }

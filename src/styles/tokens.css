@@ -1,76 +1,86 @@
 /*
  * Design tokens. Every color, size, radius and duration used by the UI lives here.
- * Components reference only the semantic tokens (--color-*, --space-*, ...),
- * never the raw palette, so a theme is a matter of remapping this file.
+ * Components reference only these semantic tokens, never raw values.
  * Documented in DESIGN.md.
+ *
+ * Theming: each color is written once as light-dark(<light>, <dark>). The
+ * resolved value follows the element's color-scheme, which is the system
+ * setting by default and is forced by <html data-theme="light|dark">
+ * (set from the theme toggle). Requires Chrome 123+.
  */
 
 :root {
   color-scheme: light dark;
+}
 
-  /* ── Raw palette ─────────────────────────────────────────── */
-  --grey-0: #ffffff;
-  --grey-25: #f7f7f8;
-  --grey-50: #f1f2f4;
-  --grey-100: #e6e7ea;
-  --grey-200: #d5d7dc;
-  --grey-400: #8b8f98;
-  --grey-500: #666a73;
-  --grey-600: #555960;
-  --grey-800: #2b2d31;
-  --grey-900: #1b1c1f;
+:root[data-theme="light"] {
+  color-scheme: light;
+}
 
-  --grey-d-0: #121315;
-  --grey-d-25: #18191c;
-  --grey-d-50: #1f2023;
-  --grey-d-100: #27292d;
-  --grey-d-200: #34363b;
-  --grey-d-400: #6e727a;
-  --grey-d-500: #9a9ea6;
-  --grey-d-600: #b3b6bd;
-  --grey-d-900: #ecedef;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
 
-  --accent-50: #eef1fd;
-  --accent-100: #dfe5fb;
-  --accent-500: #4562e0;
-  --accent-600: #3451d1;
-  --accent-700: #2a43b3;
-  --accent-d-300: #a8b8ff;
-  --accent-d-400: #8ea2ff;
-  --accent-d-900: #22284a;
-  --accent-d-950: #1a1f3b;
+:root {
+  /* ── Text ────────────────────────────────────────────────── */
+  --color-text: light-dark(#1b1c1f, #eceef2);
+  --color-text-muted: light-dark(#474b54, #b9bcc4);
+  --color-text-subtle: light-dark(#585c66, #a9adb6);
+  --color-text-disabled: light-dark(#8b8f98, #6e727a);
 
-  --red-50: #fdeeed;
-  --red-600: #c4302b;
-  --red-700: #a52722;
-  --red-d-300: #ff9b94;
-  --red-d-400: #ff7b72;
-  --red-d-900: #3a1d1c;
+  /* ── Accent, danger, focus ───────────────────────────────── */
+  --color-accent: light-dark(#3451d1, #a3b2ff);
+  --color-accent-hover: light-dark(#2a43b3, #bcc7ff);
+  --color-accent-subtle: light-dark(rgb(52 81 209 / 0.1), rgb(163 178 255 / 0.14));
+  --color-accent-subtle-hover: light-dark(rgb(52 81 209 / 0.16), rgb(163 178 255 / 0.22));
+  --color-on-accent: light-dark(#ffffff, #0d0f1a);
+  --color-danger: light-dark(#b3261f, #ff9d94);
+  --color-danger-hover: light-dark(#931e18, #ffb8b1);
+  --color-danger-subtle: light-dark(rgb(179 38 31 / 0.1), rgb(255 157 148 / 0.14));
+  --color-focus: var(--color-accent);
 
-  /* ── Semantic colors (light) ─────────────────────────────── */
-  --color-bg: var(--grey-25);
-  --color-surface: var(--grey-0);
-  --color-surface-hover: var(--grey-50);
-  --color-surface-sunken: var(--grey-50);
-  --color-border: var(--grey-100);
-  --color-border-strong: var(--grey-200);
-  --color-text: var(--grey-900);
-  --color-text-muted: var(--grey-600);
-  --color-text-subtle: var(--grey-500);
-  --color-text-disabled: var(--grey-400);
-  --color-accent: var(--accent-600);
-  --color-accent-hover: var(--accent-700);
-  --color-accent-subtle: var(--accent-50);
-  --color-accent-subtle-hover: var(--accent-100);
-  --color-on-accent: var(--grey-0);
-  --color-accent-inverse: var(--accent-d-400); /* accent on inverted surfaces (toast) */
-  --color-danger: var(--red-600);
-  --color-danger-hover: var(--red-700);
-  --color-danger-subtle: var(--red-50);
-  --color-focus: var(--accent-500);
-  --color-overlay: rgb(27 28 31 / 0.24);
-  --shadow-tile: 0 1px 2px rgb(27 28 31 / 0.06);
-  --shadow-raised: 0 4px 16px rgb(27 28 31 / 0.10), 0 1px 3px rgb(27 28 31 / 0.08);
+  /* ── Neutral fills and lines (translucent, so they sit on glass) ── */
+  --color-bg: light-dark(#eef0f6, #0c0d12);
+  --color-border: light-dark(rgb(20 24 40 / 0.08), rgb(255 255 255 / 0.08));
+  --color-border-strong: light-dark(rgb(20 24 40 / 0.16), rgb(255 255 255 / 0.16));
+  --color-surface-hover: light-dark(rgb(20 24 40 / 0.05), rgb(255 255 255 / 0.07));
+  --color-surface-sunken: light-dark(rgb(20 24 40 / 0.045), rgb(255 255 255 / 0.05));
+  /* Inputs and controls sitting on a glass surface. */
+  --color-field: light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.05));
+  --color-field-strong: light-dark(#ffffff, rgb(255 255 255 / 0.14));
+
+  /* Inverted surface for the toast. */
+  --color-inverse-bg: light-dark(rgb(27 28 33 / 0.9), rgb(236 238 242 / 0.94));
+  --color-inverse-text: light-dark(#f4f5f7, #15161a);
+  --color-accent-inverse: light-dark(#a6b4ff, #2f49c4);
+
+  /* ── Glass ─────────────────────────────────────────────────────
+     Translucent fill + backdrop blur + a bright 1px top edge, over the
+     background gradient. Opacities are set so text keeps AA contrast
+     even over the most saturated part of the gradient (checked with all
+     three glows stacked at peak strength and the 170% blur saturation). */
+  --glass-fill: light-dark(rgb(255 255 255 / 0.62), rgb(30 32 42 / 0.55));
+  --glass-fill-hover: light-dark(rgb(255 255 255 / 0.8), rgb(42 45 58 / 0.62));
+  --glass-fill-muted: light-dark(rgb(255 255 255 / 0.4), rgb(30 32 42 / 0.36));
+  --glass-fill-strong: light-dark(rgb(255 255 255 / 0.86), rgb(26 28 36 / 0.88));
+  --glass-edge: light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.1));
+  --glass-highlight: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.95), rgb(255 255 255 / 0.1));
+  --glass-blur: blur(24px) saturate(170%);
+
+  /* ── Gradients ───────────────────────────────────────────── */
+  --gradient-bg:
+    radial-gradient(60% 45% at 0% 0%, light-dark(rgb(122 140 255 / 0.38), rgb(79 99 230 / 0.32)), transparent 70%),
+    radial-gradient(55% 40% at 100% 12%, light-dark(rgb(206 150 255 / 0.32), rgb(150 80 220 / 0.24)), transparent 70%),
+    radial-gradient(70% 45% at 40% 100%, light-dark(rgb(110 214 200 / 0.3), rgb(20 150 140 / 0.2)), transparent 70%);
+  --gradient-accent: linear-gradient(135deg, light-dark(#3a54d6, #8fa2ff), light-dark(#6a46d4, #b79cff));
+
+  /* ── Elevation ───────────────────────────────────────────── */
+  --shadow-tile:
+    0 1px 2px light-dark(rgb(20 24 40 / 0.06), rgb(0 0 0 / 0.3)),
+    0 10px 24px -18px light-dark(rgb(20 24 40 / 0.35), rgb(0 0 0 / 0.7));
+  --shadow-raised:
+    0 2px 6px light-dark(rgb(20 24 40 / 0.06), rgb(0 0 0 / 0.3)),
+    0 16px 40px -12px light-dark(rgb(20 24 40 / 0.28), rgb(0 0 0 / 0.65));
 
   /* ── Typography ──────────────────────────────────────────── */
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -78,7 +88,7 @@
   --text-xs: 11px;    --leading-xs: 16px;   /* tags, badges */
   --text-sm: 12px;    --leading-sm: 16px;   /* meta lines, dates, tooltips */
   --text-base: 14px;  --leading-base: 20px; /* body, titles, inputs */
-  --text-md: 16px;    --leading-md: 24px;   /* section headings */
+  --text-md: 16px;    --leading-md: 24px;   /* editor title */
   --text-lg: 20px;    --leading-lg: 24px;   /* countdown numbers */
   --text-xl: 24px;    --leading-xl: 32px;   /* empty-state heading */
   --weight-regular: 400;
@@ -98,9 +108,9 @@
   --space-6: 48px;
 
   /* ── Radii ───────────────────────────────────────────────── */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
   --radius-full: 999px;
 
   /* ── Sizes ───────────────────────────────────────────────── */
@@ -113,38 +123,28 @@
   /* ── Motion ──────────────────────────────────────────────── */
   --duration-instant: 80ms;   /* hover/press color changes */
   --duration-fast: 120ms;     /* tooltips, small fades */
-  --duration-base: 200ms;     /* tile expand, checkbox slide */
+  --duration-base: 200ms;     /* tile expand, checkbox slide, theme change */
   --duration-slow: 240ms;     /* bottom sheet, stack expand */
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Semantic colors (dark) ────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
+/* ── Narrow panels (Chrome's minimum side-panel width is 320px) ── */
+@media (max-width: 359px) {
   :root {
-    --color-bg: var(--grey-d-0);
-    --color-surface: var(--grey-d-25);
-    --color-surface-hover: var(--grey-d-50);
-    --color-surface-sunken: var(--grey-d-50);
-    --color-border: var(--grey-d-100);
-    --color-border-strong: var(--grey-d-200);
-    --color-text: var(--grey-d-900);
-    --color-text-muted: var(--grey-d-600);
-    --color-text-subtle: var(--grey-d-500);
-    --color-text-disabled: var(--grey-d-400);
-    --color-accent: var(--accent-d-400);
-    --color-accent-hover: var(--accent-d-300);
-    --color-accent-subtle: var(--accent-d-950);
-    --color-accent-subtle-hover: var(--accent-d-900);
-    --color-on-accent: var(--grey-d-0);
-    --color-accent-inverse: var(--accent-600);
-    --color-danger: var(--red-d-400);
-    --color-danger-hover: var(--red-d-300);
-    --color-danger-subtle: var(--red-d-900);
-    --color-focus: var(--accent-d-400);
-    --color-overlay: rgb(0 0 0 / 0.48);
-    --shadow-tile: 0 0 0 1px rgb(255 255 255 / 0.02);
-    --shadow-raised: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.04);
+    --size-countdown-col: 60px;
+    --space-tile-inline: var(--space-1-5);
+  }
+}
+
+/* ── Reduced transparency: solid surfaces, no blur ─────────── */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill: light-dark(#ffffff, #1d1f27);
+    --glass-fill-hover: light-dark(#f4f5f9, #262934);
+    --glass-fill-muted: light-dark(#f4f5f9, #181a21);
+    --glass-fill-strong: light-dark(#ffffff, #1d1f27);
+    --glass-blur: none;
   }
 }
 
@@ -154,13 +154,5 @@
     --duration-fast: 1ms;
     --duration-base: 1ms;
     --duration-slow: 1ms;
-  }
-}
-
-/* ── Narrow panels (Chrome's minimum side-panel width is 320px) ── */
-@media (max-width: 359px) {
-  :root {
-    --size-countdown-col: 60px;
-    --space-tile-inline: var(--space-1-5);
   }
 }

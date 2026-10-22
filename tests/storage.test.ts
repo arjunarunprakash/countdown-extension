@@ -60,7 +60,15 @@ describe("isItem", () => {
 
 describe("parsePrefs", () => {
   it("falls back per field", () => {
-    expect(parsePrefs({ unit: "hours", pastCollapsed: "no" })).toEqual({ unit: "hours", pastCollapsed: false });
-    expect(parsePrefs({ unit: "weeks" }).unit).toBe("days");
+    expect(parsePrefs({ unit: "hours", theme: "sepia", completedCollapsed: "no" })).toEqual({
+      ...DEFAULT_PREFS,
+      unit: "hours",
+    });
+    expect(parsePrefs({ unit: "weeks", theme: "dark" })).toMatchObject({ unit: "days", theme: "dark" });
+  });
+
+  it("migrates the old single Past section's collapsed state to Overdue", () => {
+    expect(parsePrefs({ pastCollapsed: true }).overdueCollapsed).toBe(true);
+    expect(parsePrefs({ pastCollapsed: true, overdueCollapsed: false }).overdueCollapsed).toBe(false);
   });
 });

@@ -2,19 +2,27 @@ import type { Item, Row } from "./types";
 
 const time = (item: Item) => Date.parse(item.dateTime);
 
-/**
- * Splits items into upcoming rows (soonest first, recurring series collapsed
- * into stacks) and past items (most recent first). Completed items are excluded.
- */
-export function buildRows(items: readonly Item[], now: number): { upcoming: Row[]; past: Item[] } {
+export interface Sections {
+  /** Soonest first; recurring series collapsed into stacks. */
+  upcoming: Row[];
+  /** Passed and not completed, most recent first. */
+  overdue: Item[];
+  /** Most recently completed first. */
+  completed: Item[];
+}
+
+/** Splits items into the three list sections. */
+export function buildRows(items: readonly Item[], now: number): Sections {
   const upcomingSingles: Item[] = [];
   const series = new Map<string, Item[]>();
-  const past: Item[] = [];
+  const overdue: Item[] = [];
+  const completed: Item[] = [];
 
   for (const item of items) {
-    if (item.completedAt) continue;
-    if (time(item) <= now) {
-      past.push(item);
+    if (item.completedAt) {
+      completed.push(item);
+    } else if (time(item) <= now) {
+      overdue.push(item);
     } else if (item.seriesId) {
       const group = series.get(item.seriesId) ?? [];
       group.push(item);
@@ -33,7 +41,8 @@ export function buildRows(items: readonly Item[], now: number): { upcoming: Row[
 
   const head = (row: Row) => (row.kind === "single" ? row.item : row.items[0]!);
   rows.sort((a, b) => time(head(a)) - time(head(b)) || head(a).title.localeCompare(head(b).title));
-  past.sort((a, b) => time(b) - time(a));
+  overdue.sort((a, b) => time(b) - time(a));
+  completed.sort((a, b) => Date.parse(b.completedAt!) - Date.parse(a.completedAt!));
 
-  return { upcoming: rows, past };
+  return { upcoming: rows, overdue, completed };
 }

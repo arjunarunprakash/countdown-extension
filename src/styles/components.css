@@ -1,3 +1,29 @@
+/* ── Glass ───────────────────────────────────────────────────
+   Every floating surface shares the same material: a translucent fill
+   (set per surface), backdrop blur, a bright hairline edge with a top
+   highlight, and a soft shadow. Tokens: --glass-* in tokens.css. */
+.tile,
+.stack__layer,
+.countdown,
+.editor,
+.popover {
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), 0 0 0 0.5px var(--color-border), var(--shadow-tile);
+}
+
+.editor,
+.popover {
+  box-shadow: var(--glass-highlight), 0 0 0 0.5px var(--color-border), var(--shadow-raised);
+}
+
+.tile--past,
+.tile--completed,
+.countdown--past,
+.countdown--completed {
+  box-shadow: var(--glass-highlight), 0 0 0 0.5px var(--color-border);
+}
+
 /* ── App shell ─────────────────────────────────────────────── */
 .app {
   display: flex;
@@ -19,7 +45,8 @@
   z-index: 2;
   align-items: center;
   padding: var(--space-1-5) var(--space-2);
-  background: var(--color-bg);
+  background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  backdrop-filter: var(--glass-blur);
 }
 
 .header__actions {
@@ -90,8 +117,9 @@
   z-index: 10;
   padding: var(--space-0-5) var(--space-1);
   border-radius: var(--radius-sm);
-  background: var(--color-text);
-  color: var(--color-bg);
+  background: var(--color-inverse-bg);
+  color: var(--color-inverse-text);
+  backdrop-filter: var(--glass-blur);
   font-size: var(--text-sm);
   line-height: var(--leading-sm);
   font-weight: var(--weight-medium);
@@ -150,7 +178,7 @@
   min-height: var(--size-row-min);
   padding: var(--space-1) var(--space-0-5);
   border-radius: var(--radius-md);
-  background: var(--color-accent-subtle);
+  background: linear-gradient(var(--color-accent-subtle), var(--color-accent-subtle)), var(--glass-fill);
   color: var(--color-accent);
   font-size: var(--text-lg);
   line-height: var(--leading-lg);
@@ -167,14 +195,15 @@
 }
 
 .countdown--past {
-  background: var(--color-surface-sunken);
+  background: var(--glass-fill-muted);
   font-size: var(--text-sm);
   line-height: var(--leading-sm);
   letter-spacing: normal;
 }
 
 .countdown--overdue {
-  background: var(--color-danger-subtle);
+  /* Full glass fill (not muted) keeps the red label above 4.5:1. */
+  background: linear-gradient(var(--color-danger-subtle), var(--color-danger-subtle)), var(--glass-fill);
   color: var(--color-danger);
 }
 
@@ -192,17 +221,18 @@
   width: 100%;
   min-height: var(--size-row-min);
   padding: var(--space-1-5) var(--space-tile-inline, var(--space-2));
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-tile);
-  transition: background-color var(--duration-instant) var(--ease-out),
-    border-color var(--duration-instant) var(--ease-out);
+  background: var(--glass-fill);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .tile:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-strong);
+  background: var(--glass-fill-hover);
+}
+
+button.tile:active {
+  transform: scale(0.99);
 }
 
 .tile__top {
@@ -241,10 +271,9 @@
   height: 14px;
 }
 
-.tile--past {
-  background: var(--color-surface-sunken);
-  border-color: transparent;
-  box-shadow: none;
+.tile--past,
+.tile--completed {
+  background: var(--glass-fill-muted);
 }
 
 .tile--past .tile__title {
@@ -294,10 +323,8 @@
   right: 0;
   top: 0;
   bottom: var(--stack-peek-total);
-  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-tile);
+  background: var(--glass-fill);
 }
 
 .stack__layer--1 {
@@ -321,12 +348,23 @@
   gap: var(--space-0-5);
 }
 
-/* ── Past section ──────────────────────────────────────────── */
-.past {
+/* ── Bottom sections (Overdue, Completed) ─────────────────── */
+.section {
   margin-top: var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+.section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section__more {
+  display: flex;
+  justify-content: center;
 }
 
 .section-toggle {
@@ -465,10 +503,8 @@
   gap: var(--space-1-5);
   min-width: 0;
   padding: var(--space-1-5) var(--space-tile-inline, var(--space-2));
-  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
+  background: var(--glass-fill-strong);
   animation: editor-in var(--duration-base) var(--ease-out);
 }
 
@@ -516,7 +552,7 @@
   padding: var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-field);
   font-size: var(--text-base);
   line-height: var(--leading-base);
   resize: none;
@@ -571,7 +607,7 @@
 }
 
 .segmented__option input:checked + span {
-  background: var(--color-surface);
+  background: var(--color-field-strong);
   color: var(--color-text);
   box-shadow: var(--shadow-tile), 0 0 0 1px var(--color-border);
 }
@@ -600,7 +636,7 @@
   padding: 0 var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-field);
   color: var(--color-text);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -670,7 +706,7 @@
   padding: 0 var(--space-1);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-field);
   font-size: var(--text-base);
   font-variant-numeric: tabular-nums;
 }
@@ -692,10 +728,8 @@
   position: absolute;
   top: calc(100% + var(--space-0-5));
   z-index: 20;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
+  background: var(--glass-fill-strong);
   animation: popover-in var(--duration-fast) var(--ease-out);
 }
 
@@ -772,7 +806,7 @@
 
 .calendar__day--selected,
 .calendar__day--selected:hover {
-  background: var(--color-accent);
+  background: var(--gradient-accent);
   color: var(--color-on-accent);
   font-weight: var(--weight-semibold);
 }
@@ -846,7 +880,7 @@
   height: 18px;
   border: 1.5px solid var(--color-border-strong);
   border-radius: 5px;
-  background: var(--color-surface);
+  background: var(--color-field);
   transition: background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
@@ -1000,21 +1034,21 @@
    700–1000ms the row fades and collapses (total = COMPLETE_MS in state/ui.ts) */
 .countdown--done {
   position: relative;
-  background: var(--color-accent);
+  background: var(--gradient-accent);
   color: var(--color-on-accent);
   animation: done-pop 350ms var(--ease-out);
 }
 
 @keyframes done-pop {
   0% {
-    background: var(--color-accent-subtle);
+    opacity: 0.6;
     transform: scale(1);
   }
   45% {
     transform: scale(1.08);
   }
   100% {
-    background: var(--color-accent);
+    opacity: 1;
     transform: scale(1);
   }
 }
@@ -1105,8 +1139,9 @@
   max-width: 100%;
   padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
-  background: var(--color-text);
-  color: var(--color-bg);
+  background: var(--color-inverse-bg);
+  color: var(--color-inverse-text);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-raised);
   pointer-events: auto;
   animation: toast-in var(--duration-slow) var(--ease-out);
@@ -1136,7 +1171,8 @@
 
 .toast__action::before {
   content: "·";
-  color: var(--color-text-subtle);
+  color: currentColor;
+  opacity: 0.5;
   font-weight: var(--weight-regular);
 }
 
@@ -1145,7 +1181,7 @@
 }
 
 .toast__action:focus-visible {
-  outline-color: var(--color-bg);
+  outline-color: var(--color-inverse-text);
 }
 
 /* Reduced motion: keep the state changes, drop the movement. */
@@ -1163,4 +1199,45 @@
     animation: none;
     stroke-dashoffset: 0;
   }
+}
+
+/* ── Completed rows ────────────────────────────────────────── */
+.countdown--completed {
+  background: linear-gradient(var(--color-accent-subtle), var(--color-accent-subtle)), var(--glass-fill-muted);
+}
+
+.countdown--completed .icon {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.25;
+}
+
+.tile--completed .tile__title {
+  color: var(--color-text-muted);
+}
+
+.tile__actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  margin: calc(var(--space-0-5) * -1) calc(var(--space-1) * -1) calc(var(--space-0-5) * -1) 0;
+}
+
+.button--subtle {
+  height: 28px;
+  padding: 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.button--subtle:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+/* Theme switch cross-fade (View Transitions); skipped for reduced motion in JS. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-out);
 }
