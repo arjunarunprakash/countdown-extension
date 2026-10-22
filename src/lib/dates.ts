@@ -32,3 +32,13 @@ export function toLocalISO(date: Date): string {
     `${sign}${pad(Math.trunc(offset / 60))}:${pad(offset % 60)}`
   );
 }
+
+const shortDate = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const shortDateYear = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+/** Compact form for dense lists: "Mon 26 Oct, 10:00 AM" (year shown only if not this year). */
+export function formatShortDateTime(date: Date, allDay = false, now = new Date()): string {
+  const fmt = date.getFullYear() === now.getFullYear() ? shortDate : shortDateYear;
+  const day = fmt.format(date).replace(",", "");
+  return allDay ? day : `${day}, ${timePart.format(date)}`;
+}

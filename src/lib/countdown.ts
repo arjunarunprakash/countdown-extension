@@ -68,3 +68,15 @@ export function describeRemaining(target: number, now: number): string {
   }
   return parts.length ? parts.join(", ") : "Less than a second";
 }
+
+const relative = new Intl.RelativeTimeFormat("en", { numeric: "always" });
+
+/** Short relative label for secondary text: "in 4 days", "in 3 hours", "in 1 day". */
+export function relativeLabel(target: number, now: number): string {
+  const ms = target - now;
+  const abs = Math.abs(ms);
+  const sign = Math.sign(ms) || 1;
+  if (abs >= UNIT_MS.days) return relative.format(sign * Math.floor(abs / UNIT_MS.days), "day");
+  if (abs >= UNIT_MS.hours) return relative.format(sign * Math.floor(abs / UNIT_MS.hours), "hour");
+  return relative.format(sign * Math.max(1, Math.floor(abs / UNIT_MS.minutes)), "minute");
+}

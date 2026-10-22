@@ -5,9 +5,10 @@ import { IconButton } from "./IconButton";
 interface Props {
   unit: Unit;
   onCycleUnit?: () => void;
+  onNew: () => void;
 }
 
-export function Header({ unit, onCycleUnit }: Props) {
+export function Header({ unit, onCycleUnit, onNew }: Props) {
   return (
     <header class="header grid-row">
       <button
@@ -21,7 +22,7 @@ export function Header({ unit, onCycleUnit }: Props) {
         {UNIT_LABEL[unit]}
       </button>
       <div class="header__actions">
-        <IconButton icon="plus" label="New item" />
+        <IconButton icon="plus" label="New item" onClick={onNew} />
         <IconButton icon="import" label="Import" />
         <IconButton icon="export" label="Export" tooltipAlign="end" />
       </div>

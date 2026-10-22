@@ -1,8 +1,7 @@
-import { useState } from "preact/hooks";
 import type { Item, Unit } from "../lib/types";
-import { CountdownBox } from "./CountdownBox";
+import { prefs, setPrefs } from "../state/store";
 import { Icon } from "./Icon";
-import { ItemTile } from "./ItemTile";
+import { ItemRow } from "./ItemRow";
 
 interface Props {
   items: Item[];
@@ -11,8 +10,8 @@ interface Props {
 }
 
 export function PastSection({ items, unit, now }: Props) {
-  const [open, setOpen] = useState(true);
   if (items.length === 0) return null;
+  const open = !prefs.value.pastCollapsed;
 
   return (
     <section class="past" aria-labelledby="past-heading">
@@ -23,7 +22,7 @@ export function PastSection({ items, unit, now }: Props) {
           class="section-toggle"
           aria-expanded={open}
           aria-controls="past-list"
-          onClick={() => setOpen(!open)}
+          onClick={() => setPrefs({ pastCollapsed: open })}
         >
           <Icon name="chevronDown" />
           Past <span class="section-toggle__count">{items.length}</span>
@@ -32,10 +31,7 @@ export function PastSection({ items, unit, now }: Props) {
       {open && (
         <ul id="past-list" role="list" class="list list--flush">
           {items.map((item) => (
-            <li key={item.id} class="row grid-row">
-              <CountdownBox item={item} unit={unit} now={now} />
-              <ItemTile item={item} past />
-            </li>
+            <ItemRow key={item.id} row={{ kind: "single", item }} unit={unit} now={now} past />
           ))}
         </ul>
       )}
