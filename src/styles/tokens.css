@@ -1,0 +1,164 @@
+/*
+ * Design tokens. Every color, size, radius and duration used by the UI lives here.
+ * Components reference only the semantic tokens (--color-*, --space-*, ...),
+ * never the raw palette, so a theme is a matter of remapping this file.
+ * Documented in DESIGN.md.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ── Raw palette ─────────────────────────────────────────── */
+  --grey-0: #ffffff;
+  --grey-25: #f7f7f8;
+  --grey-50: #f1f2f4;
+  --grey-100: #e6e7ea;
+  --grey-200: #d5d7dc;
+  --grey-400: #8b8f98;
+  --grey-500: #666a73;
+  --grey-600: #555960;
+  --grey-800: #2b2d31;
+  --grey-900: #1b1c1f;
+
+  --grey-d-0: #121315;
+  --grey-d-25: #18191c;
+  --grey-d-50: #1f2023;
+  --grey-d-100: #27292d;
+  --grey-d-200: #34363b;
+  --grey-d-400: #6e727a;
+  --grey-d-500: #9a9ea6;
+  --grey-d-600: #b3b6bd;
+  --grey-d-900: #ecedef;
+
+  --accent-50: #eef1fd;
+  --accent-100: #dfe5fb;
+  --accent-500: #4562e0;
+  --accent-600: #3451d1;
+  --accent-700: #2a43b3;
+  --accent-d-300: #a8b8ff;
+  --accent-d-400: #8ea2ff;
+  --accent-d-900: #22284a;
+  --accent-d-950: #1a1f3b;
+
+  --red-50: #fdeeed;
+  --red-600: #c4302b;
+  --red-700: #a52722;
+  --red-d-300: #ff9b94;
+  --red-d-400: #ff7b72;
+  --red-d-900: #3a1d1c;
+
+  /* ── Semantic colors (light) ─────────────────────────────── */
+  --color-bg: var(--grey-25);
+  --color-surface: var(--grey-0);
+  --color-surface-hover: var(--grey-50);
+  --color-surface-sunken: var(--grey-50);
+  --color-border: var(--grey-100);
+  --color-border-strong: var(--grey-200);
+  --color-text: var(--grey-900);
+  --color-text-muted: var(--grey-600);
+  --color-text-subtle: var(--grey-500);
+  --color-text-disabled: var(--grey-400);
+  --color-accent: var(--accent-600);
+  --color-accent-hover: var(--accent-700);
+  --color-accent-subtle: var(--accent-50);
+  --color-accent-subtle-hover: var(--accent-100);
+  --color-on-accent: var(--grey-0);
+  --color-danger: var(--red-600);
+  --color-danger-hover: var(--red-700);
+  --color-danger-subtle: var(--red-50);
+  --color-focus: var(--accent-500);
+  --color-overlay: rgb(27 28 31 / 0.24);
+  --shadow-tile: 0 1px 2px rgb(27 28 31 / 0.06);
+  --shadow-raised: 0 4px 16px rgb(27 28 31 / 0.10), 0 1px 3px rgb(27 28 31 / 0.08);
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* size / line-height pairs on a 4px baseline */
+  --text-xs: 11px;    --leading-xs: 16px;   /* tags, badges */
+  --text-sm: 12px;    --leading-sm: 16px;   /* meta lines, dates, tooltips */
+  --text-base: 14px;  --leading-base: 20px; /* body, titles, inputs */
+  --text-md: 16px;    --leading-md: 24px;   /* section headings */
+  --text-lg: 20px;    --leading-lg: 24px;   /* countdown numbers */
+  --text-xl: 24px;    --leading-xl: 32px;   /* empty-state heading */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --tracking-tight: -0.01em;
+  --tracking-caps: 0.04em;
+
+  /* ── Spacing (8px grid, with 4px half-steps) ─────────────── */
+  --space-0-5: 4px;
+  --space-1: 8px;
+  --space-1-5: 12px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* ── Radii ───────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* ── Sizes ───────────────────────────────────────────────── */
+  --size-icon: 20px;
+  --size-icon-button: 32px;
+  --size-countdown-col: 72px;
+  --size-row-min: 64px;
+  --size-focus-ring: 2px;
+
+  /* ── Motion ──────────────────────────────────────────────── */
+  --duration-instant: 80ms;   /* hover/press color changes */
+  --duration-fast: 120ms;     /* tooltips, small fades */
+  --duration-base: 200ms;     /* tile expand, checkbox slide */
+  --duration-slow: 240ms;     /* bottom sheet, stack expand */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Semantic colors (dark) ────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--grey-d-0);
+    --color-surface: var(--grey-d-25);
+    --color-surface-hover: var(--grey-d-50);
+    --color-surface-sunken: var(--grey-d-50);
+    --color-border: var(--grey-d-100);
+    --color-border-strong: var(--grey-d-200);
+    --color-text: var(--grey-d-900);
+    --color-text-muted: var(--grey-d-600);
+    --color-text-subtle: var(--grey-d-500);
+    --color-text-disabled: var(--grey-d-400);
+    --color-accent: var(--accent-d-400);
+    --color-accent-hover: var(--accent-d-300);
+    --color-accent-subtle: var(--accent-d-950);
+    --color-accent-subtle-hover: var(--accent-d-900);
+    --color-on-accent: var(--grey-d-0);
+    --color-danger: var(--red-d-400);
+    --color-danger-hover: var(--red-d-300);
+    --color-danger-subtle: var(--red-d-900);
+    --color-focus: var(--accent-d-400);
+    --color-overlay: rgb(0 0 0 / 0.48);
+    --shadow-tile: 0 0 0 1px rgb(255 255 255 / 0.02);
+    --shadow-raised: 0 8px 24px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.04);
+  }
+}
+
+/* ── Reduced motion: keep state changes, drop movement ─────── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
+}
+
+/* ── Narrow panels (Chrome's minimum side-panel width is 320px) ── */
+@media (max-width: 359px) {
+  :root {
+    --size-countdown-col: 60px;
+    --space-tile-inline: var(--space-1-5);
+  }
+}

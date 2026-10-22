@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Countdown",
+  "version": "0.1.0",
+  "description": "Live countdowns to your deadlines and events, in Chrome's side panel.",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel", "storage"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "action": {
+    "default_title": "Open Countdown",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
