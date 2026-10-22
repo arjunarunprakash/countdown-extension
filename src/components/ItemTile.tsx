@@ -7,8 +7,6 @@ interface Props {
   past?: boolean;
   /** Extra line under the date, e.g. a stack's occurrence count. */
   meta?: ComponentChildren;
-  /** Accessible name override (stacks describe the whole series). */
-  label?: string;
   onOpen?: () => void;
   /** In selection mode the tile toggles its checkbox; the checkbox is the accessible control. */
   selecting?: boolean;
@@ -17,8 +15,11 @@ interface Props {
   badge?: { text: string; tone: "accent" | "muted" };
 }
 
-export function ItemTile({ item, past = false, meta, label, onOpen, selecting = false, selected = false, badge }: Props) {
+export function ItemTile({ item, past = false, meta, onOpen, selecting = false, selected = false, badge }: Props) {
   const date = formatItemDate(new Date(item.dateTime), item.allDay);
+  // No aria-label: the button is named by its visible content (title, tag,
+  // date, notes, meta), so speech-input users can say what they see. Its
+  // parts are block-level, so the computed name has word breaks between them.
   return (
     <button
       type="button"
@@ -26,17 +27,24 @@ export function ItemTile({ item, past = false, meta, label, onOpen, selecting = 
       data-tile-id={item.id}
       tabIndex={selecting ? -1 : undefined}
       aria-hidden={selecting || undefined}
-      aria-label={label ?? `${item.title}, ${item.type === "due" ? "due" : "starts"} ${date}. Edit`}
       onClick={onOpen}
     >
       <span class="tile__top">
-        <span class="tile__title">{item.title}</span>
-        <span class={`tag tag--${item.type}`} aria-hidden="true">
+        <span class="tile__title">
+          {item.title}
+        </span>
+        <span class={`tag tag--${item.type}`}>
           {item.type === "due" ? "Due" : "Starts"}
         </span>
       </span>
-      <span class="tile__date">{date}</span>
-      {item.notes && <span class="tile__notes">{item.notes}</span>}
+      <span class="tile__date">
+        {date}
+      </span>
+      {item.notes && (
+        <span class="tile__notes">
+          {item.notes}
+        </span>
+      )}
       {(meta || badge) && (
         <span class="tile__meta">
           {/* The badge sits on the meta line so long titles keep their room. */}

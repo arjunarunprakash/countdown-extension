@@ -107,6 +107,7 @@ export function isItem(v: unknown): v is Item {
     isOptionalString(o.uid) &&
     (o.numberFrom === undefined || Number.isInteger(o.numberFrom)) &&
     isOptionalString(o.seriesId) &&
+    (o.customTitle === undefined || typeof o.customTitle === "boolean") &&
     (o.completedAt === undefined || isDateString(o.completedAt))
   );
 }

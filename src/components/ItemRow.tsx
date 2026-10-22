@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
-import { formatItemDate } from "../lib/dates";
 import type { Item, Row, Unit } from "../lib/types";
 import { describeEnd, describeRule } from "../lib/recurrence";
 import { draftIndex } from "../state/importer";
@@ -28,6 +27,9 @@ export function ItemRow({ row, unit, now, past = false }: Props) {
     }
     return <SingleRow item={row.item} unit={unit} now={now} past={past} />;
   }
+  // One occurrence of a stack opened on its own (from the stack's Edit button).
+  const single = e?.kind === "item" ? row.items.find((i) => i.id === e.id) : undefined;
+  if (single) return <EditorRow item={single} isNew={false} unit={unit} now={now} />;
   if (e?.kind === "series" && e.seriesId === row.seriesId) {
     return <StackEditorRow seriesId={row.seriesId} items={row.items} unit={unit} now={now} />;
   }
@@ -102,7 +104,6 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
   const more = items.length - 1;
   const layers = Math.min(more, 2);
   const isCompleting = completing.value.has(head.id);
-  const date = formatItemDate(new Date(head.dateTime), head.allDay);
   const key = seriesKey(seriesId);
   const sel = selectionFor(key, seriesId, draftIndex.value.seriesIds.has(seriesId));
   return (
@@ -112,7 +113,6 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
       <div class="stack">
         <ItemTile
           item={head}
-          label={`${head.title}, ${repeatLabel(seriesId) ?? "repeating"}. Next ${head.type === "due" ? "due" : "starts"} ${date}. Open series`}
           selecting={isSelecting.value}
           selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(key)}
           badge={sel.badge}

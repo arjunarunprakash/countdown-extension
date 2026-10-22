@@ -65,6 +65,8 @@ export type RepeatPreset =
   | "none"
   | "daily"
   | "weekdays"
+  /** Weekly on hand-picked weekdays. */
+  | "weeklyOn"
   | "weekly"
   | "biweekly"
   | "monthly"
@@ -77,7 +79,7 @@ export type RepeatPreset =
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
 /** Presets that map to a fixed rule. */
-export type RulePreset = Exclude<RepeatPreset, "none" | "custom" | "dates">;
+export type RulePreset = Exclude<RepeatPreset, "none" | "custom" | "dates" | "weeklyOn">;
 
 export function presetRule(preset: RulePreset): RepeatRule {
   switch (preset) {
@@ -101,7 +103,8 @@ export function presetOf(rule: RepeatRule | null): RepeatPreset {
   if (rule.freq === "DATES") return "dates";
   const { freq, interval, weekdays } = rule;
   if (weekdays?.length) {
-    return freq === "WEEKLY" && interval === 1 && weekdays.join() === WEEKDAYS.join() ? "weekdays" : "custom";
+    if (freq !== "WEEKLY" || interval !== 1) return "custom";
+    return weekdays.join() === WEEKDAYS.join() ? "weekdays" : "weeklyOn";
   }
   if (interval === 1) return ({ DAILY: "daily", WEEKLY: "weekly", MONTHLY: "monthly", YEARLY: "yearly" } as const)[freq];
   if (freq === "WEEKLY" && interval === 2) return "biweekly";

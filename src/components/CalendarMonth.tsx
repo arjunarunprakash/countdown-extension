@@ -77,9 +77,9 @@ export function CalendarMonth({ view, onViewChange, focusDay, onFocusDayChange, 
         <button type="button" class="icon-button" aria-label="Previous month" onClick={() => onViewChange(addMonths(view, -1))}>
           <Icon name="chevronLeft" />
         </button>
-        <h3 id={titleId} class="calendar__title" aria-live="polite">
+        <h2 id={titleId} class="calendar__title" aria-live="polite">
           {formatMonthYear(view)}
-        </h3>
+        </h2>
         <button type="button" class="icon-button" aria-label="Next month" onClick={() => onViewChange(addMonths(view, 1))}>
           <Icon name="chevronRight" />
         </button>

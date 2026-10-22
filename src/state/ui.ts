@@ -12,6 +12,29 @@ export const completing = signal<ReadonlySet<string>>(new Set());
 
 export const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * Where keyboard focus should go when a tile is about to leave the list:
+ * the next tile, else the previous one, else the New item button.
+ */
+export function neighbourOf(id: string): () => void {
+  // The item's row: its tile, or the editor open in its place.
+  const own =
+    document.querySelector(`[data-tile-id="${CSS.escape(id)}"]`)?.closest("li.row") ??
+    document.querySelector(".row--editing");
+  const rows = [...document.querySelectorAll<HTMLElement>("li.row")];
+  const at = own ? rows.indexOf(own as HTMLElement) : -1;
+  const tileIn = (row: HTMLElement | undefined) => row?.querySelector<HTMLElement>("[data-tile-id]") ?? undefined;
+  let target: HTMLElement | undefined;
+  for (let i = at + 1; i < rows.length && !target; i++) target = tileIn(rows[i]);
+  for (let i = at - 1; i >= 0 && !target; i--) target = tileIn(rows[i]);
+  const targetId = target?.dataset.tileId;
+  return () =>
+    setTimeout(() => {
+      const el = targetId ? document.querySelector<HTMLElement>(`[data-tile-id="${CSS.escape(targetId)}"]`) : null;
+      (el ?? document.querySelector<HTMLElement>('[aria-label="New item"]'))?.focus();
+    });
+}
+
 /** Moves keyboard focus to an item's tile after the DOM updates. */
 export function focusTile(id: string) {
   // Preact flushes renders in a microtask, so the tile exists by the next task.

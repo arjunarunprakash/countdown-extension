@@ -13,6 +13,8 @@ export interface RepeatValue {
   custom?: RepeatRule;
   /** Hand-picked days (YYYY-MM-DD, sorted) for the "dates" preset. */
   dates?: string[];
+  /** Weekdays (0 = Sunday, sorted) for the "weeklyOn" preset. */
+  weekdays?: number[];
 }
 
 export const NO_REPEAT: RepeatValue = { preset: "none", end: { type: "never" } };
@@ -21,6 +23,9 @@ export function ruleOf(value: RepeatValue): RepeatRule | null {
   if (value.preset === "none") return null;
   if (value.preset === "custom") return value.custom ?? null;
   if (value.preset === "dates") return value.dates?.length ? { freq: "DATES", interval: 1, dates: value.dates } : null;
+  if (value.preset === "weeklyOn") {
+    return value.weekdays?.length ? { freq: "WEEKLY", interval: 1, weekdays: value.weekdays } : null;
+  }
   return presetRule(value.preset);
 }
 
@@ -28,7 +33,8 @@ export function sameRepeat(a: RepeatValue, b: RepeatValue): boolean {
   return (
     a.preset === b.preset &&
     JSON.stringify(a.end) === JSON.stringify(b.end) &&
-    JSON.stringify(a.dates ?? []) === JSON.stringify(b.dates ?? [])
+    JSON.stringify(a.dates ?? []) === JSON.stringify(b.dates ?? []) &&
+    JSON.stringify(a.weekdays ?? []) === JSON.stringify(b.weekdays ?? [])
   );
 }
 
@@ -49,6 +55,7 @@ export function RepeatField({ date, value, onChange }: Props) {
     ["daily", label("daily")],
     ["weekdays", "Every weekday (Mon–Fri)"],
     ["weekly", label("weekly")],
+    ["weeklyOn", "Weekly on…"],
     ["biweekly", label("biweekly")],
     ["monthly", label("monthly")],
     ["yearly", label("yearly")],
@@ -75,9 +82,11 @@ export function RepeatField({ date, value, onChange }: Props) {
           value={value.preset}
           onChange={(e) => {
             const preset = e.currentTarget.value as RepeatPreset;
-            // Custom dates start from the item's current date.
+            // Custom dates and weekdays start from the item's current date.
             const dates = preset === "dates" && !value.dates?.length ? [toYmd(date)] : value.dates;
-            onChange({ ...value, preset, ...(dates ? { dates } : {}) });
+            const weekdays =
+              preset === "weeklyOn" && !value.weekdays?.length ? [start.getDay()] : value.weekdays;
+            onChange({ ...value, preset, ...(dates ? { dates } : {}), ...(weekdays ? { weekdays } : {}) });
           }}
         >
           {options.map(([v, text]) => (
@@ -88,6 +97,10 @@ export function RepeatField({ date, value, onChange }: Props) {
         </select>
         <Icon name="chevronDown" />
       </div>
+
+      {value.preset === "weeklyOn" && (
+        <WeekdayPicker value={value.weekdays ?? []} onChange={(weekdays) => onChange({ ...value, weekdays })} />
+      )}
 
       {value.preset === "dates" && (
         <MultiDatePicker dates={value.dates ?? []} onChange={(dates) => onChange({ ...value, dates })} />
@@ -133,6 +146,46 @@ export function RepeatField({ date, value, onChange }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const DAYS = [
+  ["S", "Sunday"],
+  ["M", "Monday"],
+  ["T", "Tuesday"],
+  ["W", "Wednesday"],
+  ["T", "Thursday"],
+  ["F", "Friday"],
+  ["S", "Saturday"],
+] as const;
+
+/** Seven toggle buttons for "Weekly on…". At least one day stays selected. */
+function WeekdayPicker({ value, onChange }: { value: number[]; onChange: (days: number[]) => void }) {
+  const chosen = new Set(value);
+  return (
+    <div class="weekdays" role="group" aria-label="Repeat on">
+      {DAYS.map(([short, full], day) => {
+        const on = chosen.has(day);
+        return (
+          <button
+            key={full}
+            type="button"
+            class="weekday"
+            aria-pressed={on}
+            aria-label={full}
+            onClick={() => {
+              if (on && chosen.size === 1) return; // keep at least one day
+              const next = new Set(chosen);
+              if (on) next.delete(day);
+              else next.add(day);
+              onChange([...next].sort((a, b) => a - b));
+            }}
+          >
+            {short}
+          </button>
+        );
+      })}
     </div>
   );
 }

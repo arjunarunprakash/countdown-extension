@@ -17,6 +17,8 @@ export interface Item {
   uid?: string;
   /** Occurrences of one recurring event share a seriesId and render as a stack. */
   seriesId?: string;
+  /** This occurrence was renamed on its own; series renames leave its title alone. */
+  customTitle?: boolean;
   /** Set when the user marks the item done; completed items leave the list. */
   completedAt?: string;
 }

@@ -125,6 +125,17 @@ describe("buildIcs: series", () => {
     expect(ics.match(/EXDATE/g)).toHaveLength(1);
   });
 
+  it("exports an occurrence renamed on its own as its own event with an EXDATE", () => {
+    const s = series({ nextIndex: 3 });
+    const dates = [0, 1, 2].map((k) => new Date(2026, 9, 26 + 7 * k, 10));
+    const occ = occurrencesOf(s, dates);
+    occ[1] = { ...occ[1]!, title: "Planning (offsite)", customTitle: true };
+    const evs = events(buildIcs([{ kind: "series", series: s, upcoming: occ }], occ, now));
+    expect(evs).toHaveLength(2);
+    expect(evs[1]!.getFirstPropertyValue("summary")).toBe("Planning (offsite)");
+    expect(buildIcs([{ kind: "series", series: s, upcoming: occ }], occ, now)).toContain("EXDATE:20261102T100000");
+  });
+
   it("encodes weekday, interval, until and month-end rules", () => {
     const at = (rule: Series["rule"], start: Date, end: Series["end"] = { type: "never" }) => {
       const s = series({ rule, start: toLocalISO(start), end });

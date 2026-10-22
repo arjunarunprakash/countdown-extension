@@ -149,7 +149,8 @@ function seriesEvents(series: Series, upcoming: Item[], allItems: readonly Item[
     if (i >= fromIndex) {
       const item = byIndex.get(i);
       const generated = i < series.nextIndex;
-      const moved = item !== undefined && Date.parse(item.dateTime) !== date.getTime();
+      // Moved, or renamed on its own: exported as its own event plus an EXDATE.
+      const moved = item !== undefined && (Date.parse(item.dateTime) !== date.getTime() || item.customTitle === true);
       const synced = inRfcSet(series, date);
 
       if (dtIndex < 0) {

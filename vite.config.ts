@@ -27,5 +27,11 @@ export default defineConfig({
     root: import.meta.dirname,
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    coverage: {
+      provider: "v8",
+      // The logic layer; UI components are verified in the browser.
+      include: ["src/lib/**", "src/state/**"],
+      reporter: ["text-summary", "text"],
+    },
   },
 });

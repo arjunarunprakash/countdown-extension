@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, addMonths, formatShortDay, monthGrid, sameDay } from "../src/lib/calendar";
+import { addDays, addMonths, formatShortDay, monthGrid, nextMatchingDay, sameDay } from "../src/lib/calendar";
 
 describe("monthGrid", () => {
   it("returns six Sunday-first weeks containing the month", () => {
@@ -46,5 +46,15 @@ describe("date arithmetic", () => {
 describe("formatShortDay", () => {
   it("formats as 'Thu, 29 Oct 2026'", () => {
     expect(formatShortDay({ year: 2026, month: 9, day: 29 })).toBe("Thu, 29 Oct 2026");
+  });
+});
+
+describe("nextMatchingDay", () => {
+  it("returns the day itself when it matches, else the next chosen weekday", () => {
+    const thu = { year: 2026, month: 9, day: 29 }; // Thursday
+    expect(nextMatchingDay(thu, [4])).toEqual(thu);
+    expect(nextMatchingDay(thu, [1, 3])).toEqual({ year: 2026, month: 10, day: 2 }); // next Monday
+    expect(nextMatchingDay(thu, [5])).toEqual({ year: 2026, month: 9, day: 30 });
+    expect(nextMatchingDay(thu, [])).toEqual(thu);
   });
 });

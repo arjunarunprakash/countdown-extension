@@ -157,7 +157,8 @@ export function saveSeries(seriesId: string, patch: { title: string; type: Item[
     setItems(
       items.value.map((i) => {
         if (!isUpcoming(i)) return i;
-        const title = occurrenceTitle(next, occurrenceIndex(next, i));
+        // Occurrences renamed on their own keep their title (type still follows the series).
+        const title = i.customTitle ? i.title : occurrenceTitle(next, occurrenceIndex(next, i));
         return i.title === title && i.type === patch.type ? i : { ...i, title, type: patch.type, updatedAt: stamp };
       }),
     );
@@ -229,7 +230,7 @@ export function changeSeriesRule(
       else restarted.numberFrom = numberFrom;
       if (anchor.allDay) restarted.allDay = true;
       else delete restarted.allDay;
-      const anchorTitle = occurrenceTitle(restarted, 0);
+      const anchorTitle = anchor.customTitle ? anchor.title : occurrenceTitle(restarted, 0);
       setItems(kept.map((i) => (i.id === anchor.id ? { ...anchor, title: anchorTitle, seriesId } : i)));
       setSeries(series.value.map((x) => (x.id === seriesId ? restarted : x)));
     } else {

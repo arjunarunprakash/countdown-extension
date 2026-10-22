@@ -4,7 +4,7 @@ import { relativeLabel } from "../lib/countdown";
 import { formatItemDate, formatShortDateTime } from "../lib/dates";
 import { formatTime } from "../lib/parse";
 import type { Item, ItemType, Unit } from "../lib/types";
-import { fromYmd } from "../lib/calendar";
+import { fromYmd, nextMatchingDay } from "../lib/calendar";
 import { toLocalISO } from "../lib/dates";
 import { occurrenceIndex } from "../lib/recurrence";
 import { changeSeriesRule, removeItems, removeSeries, saveSeries, series } from "../state/store";
@@ -74,10 +74,13 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
       // Restart from the next occurrence, which keeps its number. With custom
       // dates it moves to the earliest chosen day (same time of day).
       let anchor: Item = { ...head, type: ty };
-      if (rule?.freq === "DATES" && rule.dates?.length) {
-        const day = fromYmd(rule.dates[0]!);
-        const at = new Date(head.dateTime);
+      const at = new Date(head.dateTime);
+      const moveTo = (day: { year: number; month: number; day: number }) => {
         anchor = { ...anchor, dateTime: toLocalISO(new Date(day.year, day.month, day.day, at.getHours(), at.getMinutes())) };
+      };
+      if (rule?.freq === "DATES" && rule.dates?.length) moveTo(fromYmd(rule.dates[0]!));
+      if (rule?.freq === "WEEKLY" && rule.weekdays?.length) {
+        moveTo(nextMatchingDay({ year: at.getFullYear(), month: at.getMonth(), day: at.getDate() }, rule.weekdays));
       }
       changeSeriesRule(seriesId, anchor, rule, r.end, new Date(), { template, numberFrom: from + occurrenceIndex(owner, head) });
     } else {
@@ -163,6 +166,21 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
                       {relativeLabel(date.getTime(), now)}
                     </span>
                   </span>
+                  <button
+                    type="button"
+                    class="icon-button icon-button--sm"
+                    aria-label={`Edit ${occ.title}, ${formatItemDate(date, occ.allDay)}`}
+                    data-tooltip="Edit this one"
+                    data-tooltip-align="end"
+                    disabled={isCompleting}
+                    onClick={() => {
+                      // Save series edits first, then open just this occurrence.
+                      close("outside");
+                      editing.value = { kind: "item", id: occ.id };
+                    }}
+                  >
+                    <Icon name="edit" />
+                  </button>
                   <button
                     type="button"
                     class="icon-button icon-button--sm icon-button--complete"

@@ -3,11 +3,11 @@ import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useDismiss, type DismissReason } from "../hooks/useDismiss";
 import { differs, fieldsOf, withFields, type ItemFields } from "../lib/items";
 import type { Item, Unit } from "../lib/types";
-import { fromYmd, toYmd } from "../lib/calendar";
+import { fromYmd, nextMatchingDay, toYmd } from "../lib/calendar";
 import { hasNumberToken, renderTitle } from "../lib/numbering";
 import { occurrenceIndex, occurrenceTitle, presetOf, type Series } from "../lib/recurrence";
 import { addItem, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
-import { editing, focusTile, startCompletion } from "../state/ui";
+import { COMPLETE_MS, editing, focusTile, neighbourOf, prefersReducedMotion, startCompletion } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { SelectCell } from "./SelectCell";
 import { DatePicker } from "./DatePicker";
@@ -32,6 +32,7 @@ export function repeatOf(s: Series | undefined, from: Item): RepeatValue {
   if (!s) return NO_REPEAT;
   const preset = presetOf(s.rule);
   if (preset === "custom") return { preset, end: s.end, custom: s.rule };
+  if (preset === "weeklyOn") return { preset, end: s.end, weekdays: s.rule.weekdays ?? [] };
   if (preset === "dates") {
     // Only this occurrence's date and later ones are editable.
     const fromDay = toYmd(fieldsOf(from).date);
@@ -55,8 +56,9 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   const [owner] = useState(() => seriesOf(item));
   const [fields, setFields] = useState<ItemFields>(() => {
     const f = fieldsOf(item);
-    // A numbered series shows its template ("Chapter {n}"), not this occurrence's title.
-    return owner?.numberFrom !== undefined ? { ...f, title: owner.template.title } : f;
+    // An occurrence's series-wide title is the template ("Chapter {n}"), not
+    // this occurrence's own title, which may be numbered or renamed on its own.
+    return owner && !isNew ? { ...f, title: owner.template.title } : f;
   });
   const [initial] = useState(() => repeatOf(owner, item));
   const [repeat, setRepeatState] = useState<RepeatValue>(initial);
@@ -65,6 +67,13 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   latestRepeat.current = repeat;
   const latestFrom = useRef(numberFrom);
   latestFrom.current = numberFrom;
+  // Renaming an occurrence of a series: the whole series, or just this one.
+  const [scope, setScope] = useState<"series" | "one">(item.customTitle ? "one" : "series");
+  const [ownTitle, setOwnTitle] = useState(item.title);
+  const latestOwn = useRef({ scope, ownTitle });
+  latestOwn.current = { scope, ownTitle };
+  const inSeries = !isNew && owner !== undefined;
+  const onlyThis = inSeries && scope === "one";
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef(fields);
@@ -79,22 +88,26 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   const set = <K extends keyof ItemFields>(key: K, value: ItemFields[K]) =>
     setFields((f) => ({ ...f, [key]: value }));
 
-  // With custom dates, the item's own date is the earliest chosen day.
+  // With custom dates, the item's own date is the earliest chosen day; with
+  // chosen weekdays, the first of those days on or after the current date.
   const setRepeat = (r: RepeatValue) => {
     setRepeatState(r);
     if (r.preset === "dates" && r.dates?.length) set("date", fromYmd(r.dates[0]!));
+    if (r.preset === "weeklyOn" && r.weekdays?.length) setFields((f) => ({ ...f, date: nextMatchingDay(f.date, r.weekdays!) }));
   };
 
   /** Saves the draft; returns the saved item, or null if nothing was kept. */
   const save = (): Item | null => batch(saveDraft);
 
   const saveDraft = (): Item | null => {
-    const f = latest.current;
+    const f = { ...latest.current };
     const r = latestRepeat.current;
     const from = latestFrom.current;
     const rule = ruleOf(r);
     const repeatChanged = !sameRepeat(r, initial);
     const stamp = new Date();
+    // A weekly-on-days series starts on one of its days (the date may have been changed since).
+    if (rule?.freq === "WEEKLY" && rule.weekdays?.length) f.date = nextMatchingDay(f.date, rule.weekdays);
     const raw = f.title.trim();
     const numbered = hasNumberToken(raw);
     // A one-off item with {n} just reads it as the starting number.
@@ -117,12 +130,17 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
     }
 
     // Part of a series: date/time/notes edits apply to this occurrence;
-    // the title (template) and type apply to the series.
+    // the title (template) and type apply to the series, unless this
+    // occurrence is renamed on its own.
     const index = occurrenceIndex(owner, item);
     const template = raw || owner.template.title;
-    const ownTitle = occurrenceTitle({ ...owner, template: { ...owner.template, title: template }, numberFrom: numbered ? from : undefined }, index);
-    const next = withFields(item, { ...f, title: ownTitle }, stamp);
-    if (differs(item, next)) saveItem(next);
+    const seriesTitle = occurrenceTitle({ ...owner, template: { ...owner.template, title: template }, numberFrom: numbered ? from : undefined }, index);
+    const own = latestOwn.current;
+    const custom = own.scope === "one" && own.ownTitle.trim() !== "" && own.ownTitle.trim() !== seriesTitle;
+    let next = withFields(item, { ...f, title: custom ? own.ownTitle : seriesTitle }, stamp);
+    if (custom) next = { ...next, customTitle: true };
+    else delete next.customTitle;
+    if (differs(item, next) || Boolean(item.customTitle) !== Boolean(next.customTitle)) saveItem(next);
 
     if (repeatChanged) {
       // Restarting from this occurrence: it keeps its number.
@@ -158,8 +176,8 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
           aria-label="Title"
           placeholder={isNew ? "What's coming up?" : "Title"}
           maxLength={200}
-          value={fields.title}
-          onInput={(e) => set("title", e.currentTarget.value)}
+          value={onlyThis ? ownTitle : fields.title}
+          onInput={(e) => (onlyThis ? setOwnTitle(e.currentTarget.value) : set("title", e.currentTarget.value))}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -167,16 +185,38 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
             }
           }}
         />
-        <TitleNumbering
-          title={fields.title}
-          onTitleChange={(v) => set("title", v)}
-          from={numberFrom}
-          onFromChange={setNumberFrom}
-          repeating={repeat.preset !== "none"}
-          count={occurrenceCount(repeat)}
-          offset={owner && sameRepeat(repeat, initial) ? occurrenceIndex(owner, item) : 0}
-          inputRef={titleRef}
-        />
+        {inSeries && (
+          <div class="rename-scope">
+            <span id={`scope-label-${item.id}`} class="rename-scope__label">
+              Rename
+            </span>
+            <div class="segmented segmented--small" role="radiogroup" aria-labelledby={`scope-label-${item.id}`}>
+              {(
+                [
+                  ["series", "All upcoming"],
+                  ["one", "Only this one"],
+                ] as const
+              ).map(([value, text]) => (
+                <label key={value} class="segmented__option">
+                  <input type="radio" name={`scope-${item.id}`} checked={scope === value} onChange={() => setScope(value)} />
+                  <span>{text}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {!onlyThis && (
+          <TitleNumbering
+            title={fields.title}
+            onTitleChange={(v) => set("title", v)}
+            from={numberFrom}
+            onFromChange={setNumberFrom}
+            repeating={repeat.preset !== "none"}
+            count={occurrenceCount(repeat)}
+            offset={owner && sameRepeat(repeat, initial) ? occurrenceIndex(owner, item) : 0}
+            inputRef={titleRef}
+          />
+        )}
 
         <TypeToggle value={fields.type} onChange={(v) => set("type", v)} />
 
@@ -204,9 +244,12 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
               type="button"
               class="button button--quiet"
               onClick={() => {
+                const refocus = neighbourOf(item.id);
                 const saved = save();
                 editing.value = null;
                 if (saved) startCompletion(saved.id);
+                // Keep keyboard users in place once the row has gone.
+                setTimeout(refocus, prefersReducedMotion() ? 0 : COMPLETE_MS + 50);
               }}
             >
               <Icon name="check" />
@@ -217,8 +260,10 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
             type="button"
             class="button button--danger-quiet"
             onClick={() => {
+              const refocus = neighbourOf(item.id);
               editing.value = null;
               if (!isNew) removeItems([item.id]);
+              refocus();
             }}
           >
             {isNew ? "Discard" : "Remove"}

@@ -240,5 +240,24 @@ describe("repeating items in the store", () => {
       stop();
     }
   });
+
+  it("keeps an occurrence renamed on its own through series renames and rule changes", () => {
+    addItem(makeRepeating(first({ title: "Chapter 1 Homework" }), presetRule("weekly"), { type: "count", count: 4 }, { template: "Chapter {n} Homework", numberFrom: 1 }));
+    ensureOccurrences(t);
+    const id = series.value[0]!.id;
+    const third = upcomingOf(id)[2]!;
+    items.value = items.value.map((i) => (i.id === third.id ? { ...i, title: "Chapter 3 (part 2) Homework", customTitle: true } : i));
+
+    saveSeries(id, { title: "Ch. {n}", type: "due", numberFrom: 1 }, now);
+    expect(upcomingOf(id).map((i) => i.title)).toEqual(["Ch. 1", "Ch. 2", "Chapter 3 (part 2) Homework", "Ch. 4"]);
+
+    const renamed = upcomingOf(id)[2]!;
+    changeSeriesRule(id, renamed, presetRule("biweekly"), { type: "count", count: 2 }, now, { template: "Ch. {n}", numberFrom: 3 });
+    ensureOccurrences(t);
+    expect(upcomingOf(id).filter((i) => Date.parse(i.dateTime) >= Date.parse(renamed.dateTime)).map((i) => i.title)).toEqual([
+      "Chapter 3 (part 2) Homework",
+      "Ch. 4",
+    ]);
+  });
 });
 

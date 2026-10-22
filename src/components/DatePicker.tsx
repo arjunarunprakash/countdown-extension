@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from "preact/hooks";
 import { useDismiss } from "../hooks/useDismiss";
-import { formatFullDay, formatShortDay, sameDay } from "../lib/calendar";
+import { formatShortDay, sameDay } from "../lib/calendar";
 import { formatTypedDate, parseTypedDate, type DateParts } from "../lib/parse";
 import { CalendarMonth } from "./CalendarMonth";
 import { Icon } from "./Icon";
@@ -83,10 +83,10 @@ export function DatePicker({ value, onChange, label = "Date" }: Props) {
         class="field-button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${label}: ${formatFullDay(value)}. Change ${label.toLowerCase()}`}
         onClick={() => (open ? close(false) : openPicker())}
       >
         <Icon name="calendar" />
+        <span class="visually-hidden">{label}: </span>
         {formatShortDay(value)}
       </button>
 

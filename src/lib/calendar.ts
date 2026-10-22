@@ -57,6 +57,16 @@ export function fromYmd(s: string): DateParts {
   return { year: y, month: m - 1, day: d };
 }
 
+/** The first day on or after `p` whose weekday (0 = Sunday) is in `weekdays`. */
+export function nextMatchingDay(p: DateParts, weekdays: readonly number[]): DateParts {
+  if (weekdays.length === 0) return p;
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(p, i);
+    if (weekdays.includes(new Date(d.year, d.month, d.day).getDay())) return d;
+  }
+  return p;
+}
+
 /** Every day from a to b inclusive, in either order. */
 export function daysBetween(a: DateParts, b: DateParts): DateParts[] {
   const [from, to] = toYmd(a) <= toYmd(b) ? [a, b] : [b, a];

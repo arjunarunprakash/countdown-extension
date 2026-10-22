@@ -81,6 +81,8 @@ describe("presets", () => {
     }
     expect(presetOf(null)).toBe("none");
     expect(presetOf({ freq: "DAILY", interval: 3 })).toBe("custom");
+    expect(presetOf({ freq: "WEEKLY", interval: 1, weekdays: [1, 3, 5] })).toBe("weeklyOn");
+    expect(presetOf({ freq: "WEEKLY", interval: 2, weekdays: [1, 3] })).toBe("custom");
   });
 
   it("describes rules from the start date", () => {

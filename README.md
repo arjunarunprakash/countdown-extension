@@ -1,56 +1,125 @@
 # Countdown
 
-A minimal Chrome extension that lists your deadlines and event start times in Chrome's side panel, each with a live countdown.
+A calm, minimal Chrome extension that keeps your deadlines and event start times in Chrome's side panel, each with a live countdown.
 
-> **Status:** Phase 5 of 6: import from `.ics` files and calendar links, with a preview and duplicate detection. The accessibility pass, tests review and final docs (Phase 6) are next.
+- Add deadlines (**Due**) and events (**Starts**); edit everything inline
+- Live countdowns in days, hours, minutes or seconds
+- Repeating items, hand-picked dates, weekday schedules and numbered titles ("Chapter {n} Homework")
+- Import from `.ics` files and calendar links (Google, Apple, Outlook), with a preview and duplicate detection
+- Export to Google Calendar or any calendar app via `.ics`
+- Light and dark themes with a frosted-glass look; keyboard and screen-reader friendly
 
-## Setup
+Design tokens, components and motion are documented in [DESIGN.md](DESIGN.md).
 
-Requires Node 24 LTS (ships with npm 11) and Chrome 123+.
+## Requirements
+
+- **Chrome 123 or later** (side panel, `light-dark()` colors, the Popover API)
+- **Node 24 LTS** with npm 11, to build
+
+## Install and build
 
 ```bash
 npm ci
 npm run build
 ```
 
-> On older Node versions bundled with npm 10, `npm install` can fail with `Cannot read properties of null (reading 'edgesOut')` (an npm peer-dependency bug). `npm ci` still works; upgrading to Node 24 fixes it.
+This writes the unpacked extension to `dist/`.
+
+> With older Node versions bundled with npm 10, `npm install` can fail with `Cannot read properties of null (reading 'edgesOut')` (an npm bug). `npm ci` still works; upgrading to Node 24 fixes it.
 
 ## Load the extension in Chrome
 
-1. Run `npm run build`. This writes the extension to `dist/`.
+1. Run `npm run build`.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select the `dist/` folder.
-4. Pin Countdown from the puzzle-piece menu, then click its icon to open the side panel.
+3. Click **Load unpacked** and choose the `dist/` folder.
+4. Pin **Countdown** from the puzzle-piece menu, then click its icon. The side panel opens.
 
-After rebuilding, click the reload icon on Countdown's card in `chrome://extensions`, then reopen the panel. `npm run dev` rebuilds on every save.
+**After changing the code:** run `npm run build` again (or keep `npm run dev` running, which rebuilds on save), click the reload icon on Countdown's card in `chrome://extensions`, then reopen the panel.
 
-**Sample data (development builds only):** with `npm run dev` running, open the panel page directly at `chrome-extension://<extension-id>/sidepanel/index.html?seed` while the list is empty to load sample items, including a recurring stack. Production builds strip this out.
+## Using Countdown
 
-## Scripts
+| To… | Do this |
+|---|---|
+| Add an item | **+** in the header. Type a title, choose **Due** or **Starts**, a date and a time. Changes save when you press Escape or Enter in the title, or click outside. |
+| Edit an item | Click its tile. **Complete** and **Remove** are at the bottom of the editor. |
+| Change the countdown unit | Click **Days** (top left) to cycle Days → Hours → Minutes → Seconds. |
+| Repeat an item | In the editor, **Repeat**: daily, weekdays, weekly, weekly on chosen days, every 2 weeks, monthly, yearly, or **Custom dates…**. Then choose when it ends. |
+| Number repeating titles | With Repeat set, **# Number each occurrence** (select the "1" in "Chapter 1" first to replace it). |
+| Manage a repeating stack | Click the stack to rename the series, change its rule, or complete/remove occurrences one at a time or all at once. The pencil on an occurrence edits just that one (its date, time, or its own title via **Rename: Only this one**). |
+| Undo | Every remove, complete, clear and import shows **Undo** for 5 seconds (or press Cmd/Ctrl+Z). |
+| Export | **Export** (header) → tick items → Google Calendar, Download .ics, or Remove. |
+| Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, then **Add selected**. |
+| Switch theme | The last header button cycles System → Light → Dark. |
+
+**Calendar links:** in Google Calendar, use *Settings › your calendar › Secret address in iCal format*; in Apple Calendar, share the calendar as a Public Calendar and copy its `webcal://` link.
+
+### Keyboard
+
+Everything works without a mouse. Tab moves between controls; Enter or Space activates. In the calendar, arrows move by day or week, Home/End to the week's ends, PageUp/PageDown by month (with Shift: by year). In the time field, arrows move through the list and Enter picks. Escape closes the innermost popover, editor or sheet. Cmd/Ctrl+Z undoes while the toast is showing.
+
+## Privacy and permissions
+
+Countdown stores everything locally in `chrome.storage.local`; there is no account, server or analytics. It requests only `sidePanel` and `storage`. When you fetch a calendar link, Chrome asks for permission to read that site (and its subdomains, because calendar servers redirect); nothing else on the web is accessed. Exports are files you download.
+
+## Development
 
 | Command | What it does |
 |---|---|
 | `npm run build` | Typecheck, then build to `dist/` |
-| `npm run dev` | Rebuild to `dist/` on every change |
-| `npm test` | Run unit tests (Vitest) |
+| `npm run dev` | Development build to `dist/`, rebuilt on every change |
+| `npm test` | Unit tests (Vitest) |
+| `npm run coverage` | Tests with coverage for `src/lib` and `src/state` |
 | `npm run typecheck` | TypeScript only |
 | `npm run icons` | Regenerate `public/icons/*.png` from `scripts/make-icons.mjs` |
 
-## Project layout
+**Sample data:** in a development build (`npm run dev`), open `chrome-extension://<extension-id>/sidepanel/index.html?seed` while the list is empty to load sample items, including a repeating stack. Production builds strip this out.
+
+### Project layout
 
 ```
 public/            manifest.json and icons (copied to dist/ as-is)
-src/background/    MV3 service worker: makes the toolbar icon open the side panel
-src/sidepanel/     side panel page and root component
-src/components/    UI components
-src/lib/           pure logic: dates, parsing, calendar, countdown math, item operations, storage validation (unit-tested)
-src/state/         signals for items, prefs, UI state, toast and clock; actions that persist and offer undo
-src/hooks/         shared hooks (Escape / click-outside dismissal)
-src/styles/        tokens.css (all design tokens), base.css, components.css
+src/background/    MV3 service worker: the toolbar icon opens the side panel
+src/sidepanel/     panel page, entry point and root component
+src/components/    UI components (Preact)
+src/hooks/         shared hooks: dismissal, presence animations, sheet height
+src/lib/           pure logic, unit-tested: dates, parsing, calendar, countdowns,
+                   recurrence, numbering, time zones, .ics import/export,
+                   duplicate detection, storage validation, positioning
+src/state/         signals and actions: items, series, prefs, selection,
+                   import, clock, theme, toast
+src/styles/        tokens.css (every design token), base.css, components.css
 tests/             Vitest unit tests
 ```
 
-## Product decisions
+### How it fits together
+
+- **UI:** Preact components with `@preact/signals` for state. Components read signals directly, so only what changed re-renders.
+- **Data model:** `Item` (title, type, `dateTime` as ISO with UTC offset, optional all-day, notes, source, `seriesId`, completion) and `Series` (rule, end, title template, numbering, next index to generate, optional source time zone). Completions are also stored as separate records so stats survive removal.
+- **Repeating items:** a series keeps its next 6 occurrences generated (deterministic ids), topping up as they are completed or pass. Rules are a subset of RRULE plus hand-picked dates.
+- **Storage:** `chrome.storage.local` with a versioned schema; everything read back is validated. Writes from one action are coalesced into a single write so other open panels never see half a change, and panels never write back in reaction to another panel's change.
+- **Floating UI:** popovers, lists and tooltips use the browser's top layer (Popover API), so the glass layering can't hide them.
+
+### Testing
+
+`npm test` runs 240+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
+
+Accessibility is checked with axe-core against every main screen in light and dark mode (WCAG 2.2 AA: 0 violations).
+
+## Troubleshooting
+
+- **The panel doesn't open:** make sure the extension is enabled, then click its toolbar icon (pin it first). Chrome 123+ is required.
+- **Changes don't show up:** rebuild, click reload on the extension's card, and reopen the panel.
+- **A calendar link won't import:** use the *iCal* address, not the calendar's web page; private Google calendars need the *Secret address in iCal format*. If you declined Chrome's permission prompt, try again and choose Allow.
+- **Times look off after importing:** check the source calendar's time zone; Countdown converts each event to your local time.
+
+## Known limitations
+
+- Share links (Phase 2 of the product) need a backend and aren't built yet; the Export sheet shows a placeholder.
+- Notifications and account sync are out of scope.
+- Calendars are imported once; there is no automatic refresh of a subscribed link.
+- Exotic recurrence rules ("second Tuesday", hourly) import as a fixed stack of their next 6 occurrences.
+
+## Behaviour reference
 
 - **Bottom sections.** Two collapsible sections sit below the upcoming list, and each remembers whether it was open:
   - **Overdue:** items whose time has passed without being completed. Due items show "Overdue" in red; Starts items show "Started". Started events go here rather than in Completed so the completion stats only count things you actually checked off.
@@ -64,6 +133,8 @@ tests/             Vitest unit tests
   - Removing one occurrence skips it. Selecting all of a stack's occurrences turns the button into **Remove series**, which stops the series (with undo).
   - Rules are a subset of iCalendar RRULE, so they map directly to .ics import and export.
 - **Custom dates.** Repeat › **Custom dates…** replaces the date button with chips for the chosen days, plus a calendar where clicking toggles a day and Shift-click adds a range. You can also type a date and press Enter. Past days can't be chosen. Every occurrence uses the item's time, and the stack reads "On N custom dates".
+- **Weekly on chosen days.** Repeat › **Weekly on…** shows seven weekday toggles (at least one stays on). If the item's date isn't one of them, the first occurrence moves to the next chosen day.
+- **Renaming one occurrence.** In an open stack, the pencil on an occurrence opens it on its own. Editing an occurrence of a repeating item shows **Rename: All upcoming | Only this one**. "Only this one" gives that occurrence its own title; later series renames and renumbering leave it alone, and it exports as its own event. Switching back to "All upcoming" returns it to the series title.
 - **Ends.** The Ends menu offers **Never ends**, **Until a date** (inclusive) and **After a number of times**.
 - **Numbered titles.** When an item repeats, **# Number each occurrence** inserts `{n}` into the title, e.g. "Chapter {n} Homework" becomes Chapter 1, 2, 3… Hand-picked dates work too.
   - Select a number in the title first and the button replaces it and starts counting from it. You can also change **Numbered from** directly.

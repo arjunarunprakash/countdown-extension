@@ -22,6 +22,7 @@ export function Header({ unit, onNew, selectable }: Props) {
 
   return (
     <header class="header grid-row">
+      <h1 class="visually-hidden">Countdown</h1>
       <div class="select-cell" inert={!selecting}>
         <Checkbox
           checked={all}
