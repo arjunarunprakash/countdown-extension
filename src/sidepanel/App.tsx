@@ -2,6 +2,7 @@ import { useMemo } from "preact/hooks";
 import { Header } from "../components/Header";
 import { EditorRow } from "../components/ItemEditor";
 import { ItemRow } from "../components/ItemRow";
+import { EmptyState } from "../components/EmptyState";
 import { CompletedSection, OverdueSection } from "../components/Sections";
 import { Toast } from "../components/Toast";
 import { newItem } from "../lib/items";
@@ -9,7 +10,7 @@ import { buildRows } from "../lib/rows";
 import type { Row } from "../lib/types";
 import { now } from "../state/clock";
 import { items, prefs, ready } from "../state/store";
-import { editing } from "../state/ui";
+import { editing, openImport } from "../state/ui";
 
 const rowKey = (row: Row) => (row.kind === "single" ? row.item.id : row.seriesId);
 
@@ -29,14 +30,16 @@ export function App() {
 
   const unit = prefs.value.unit;
   const e = editing.value;
-  const isEmpty = upcoming.length === 0 && overdue.length === 0 && completed.length === 0 && e?.kind !== "new";
+  const nothingUpcoming = upcoming.length === 0 && e?.kind !== "new";
+  const nothingAtAll = nothingUpcoming && overdue.length === 0 && completed.length === 0;
 
   return (
     <div class="app">
       <Header unit={unit} onNew={startNew} />
       <main class="list">
-        {/* Placeholder until Phase 3's empty state. */}
-        {isEmpty && <p class="empty-hint">No deadlines yet. Select + to add one.</p>}
+        {nothingUpcoming && (
+          <EmptyState variant={nothingAtAll ? "first" : "clear"} onNew={startNew} onImport={openImport} />
+        )}
         <ul role="list" class="list list--flush" aria-label="Upcoming">
           {e?.kind === "new" && <EditorRow key={e.draft.id} item={e.draft} isNew unit={unit} now={t} />}
           {upcoming.map((row) => (

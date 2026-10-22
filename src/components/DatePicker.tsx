@@ -16,6 +16,8 @@ import { Icon } from "./Icon";
 interface Props {
   value: DateParts;
   onChange: (value: DateParts) => void;
+  /** Accessible name prefix, e.g. "End date". */
+  label?: string;
 }
 
 const WEEKDAYS = [
@@ -37,7 +39,7 @@ const DATE_ERROR = "Enter a real date as MM/DD/YYYY";
  * Date field modelled on Google Calendar's event picker: a button showing the
  * date opens a popover with a month grid and a text field kept in sync.
  */
-export function DatePicker({ value, onChange }: Props) {
+export function DatePicker({ value, onChange, label = "Date" }: Props) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(value);
   const [focusDay, setFocusDay] = useState(value);
@@ -140,7 +142,7 @@ export function DatePicker({ value, onChange }: Props) {
         class="field-button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`Date: ${formatFullDay(value)}. Change date`}
+        aria-label={`${label}: ${formatFullDay(value)}. Change ${label.toLowerCase()}`}
         onClick={() => (open ? close(false) : openPicker())}
       >
         <Icon name="calendar" />

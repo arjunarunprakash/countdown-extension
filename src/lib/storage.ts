@@ -1,3 +1,4 @@
+import type { RepeatEnd, RepeatRule, Series } from "./recurrence";
 import type { CompletionRecord, Item, Unit } from "./types";
 
 export const SCHEMA_VERSION = 1;
@@ -21,6 +22,7 @@ export const DEFAULT_PREFS: Prefs = {
 export interface StoredState {
   items: Item[];
   completions: CompletionRecord[];
+  series: Series[];
   prefs: Prefs;
 }
 
@@ -135,7 +137,51 @@ export function parsePrefs(v: unknown): Prefs {
   };
 }
 
+const FREQS = new Set<unknown>(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]);
+const isPositiveInt = (v: unknown) => Number.isInteger(v) && (v as number) > 0;
+
+function isRule(v: unknown): v is RepeatRule {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    FREQS.has(o.freq) &&
+    isPositiveInt(o.interval) &&
+    (o.weekdays === undefined ||
+      (Array.isArray(o.weekdays) && o.weekdays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)))
+  );
+}
+
+function isEnd(v: unknown): v is RepeatEnd {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  if (o.type === "never") return true;
+  if (o.type === "count") return isPositiveInt(o.count);
+  return o.type === "until" && isString(o.date) && /^\d{4}-\d{2}-\d{2}$/.test(o.date);
+}
+
+export function isSeries(v: unknown): v is Series {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  const t = o.template as Record<string, unknown> | null;
+  return (
+    isString(o.id) &&
+    Number.isInteger(o.epoch) &&
+    isDateString(o.start) &&
+    (o.allDay === undefined || typeof o.allDay === "boolean") &&
+    isRule(o.rule) &&
+    isEnd(o.end) &&
+    typeof t === "object" &&
+    t !== null &&
+    isString(t.title) &&
+    (t.type === "due" || t.type === "starts") &&
+    isOptionalString(t.notes) &&
+    Number.isInteger(o.nextIndex) &&
+    (o.nextIndex as number) >= 0
+  );
+}
+
 export const parseItems = (v: unknown): Item[] => (Array.isArray(v) ? v.filter(isItem) : []);
+export const parseSeries = (v: unknown): Series[] => (Array.isArray(v) ? v.filter(isSeries) : []);
 export const parseCompletions = (v: unknown): CompletionRecord[] => (Array.isArray(v) ? v.filter(isCompletion) : []);
 
 export async function loadState(backend: StorageBackend): Promise<StoredState> {
@@ -143,6 +189,7 @@ export async function loadState(backend: StorageBackend): Promise<StoredState> {
   const state: StoredState = {
     items: parseItems(raw.items),
     completions: parseCompletions(raw.completions),
+    series: parseSeries(raw.series),
     prefs: parsePrefs(raw.prefs),
   };
   // Future schema changes migrate here, keyed on raw.schemaVersion.

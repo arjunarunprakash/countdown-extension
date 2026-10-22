@@ -416,10 +416,125 @@ button.tile:active {
   white-space: nowrap;
 }
 
-.empty-hint {
-  padding: var(--space-4) 0;
-  color: var(--color-text-muted);
+/* ── Empty state ───────────────────────────────────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-2) var(--space-4);
   text-align: center;
+  animation: empty-in var(--duration-slow) var(--ease-out);
+}
+
+.empty--clear {
+  padding: var(--space-3) var(--space-2);
+}
+
+@keyframes empty-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.empty__art {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-1);
+}
+
+.empty__track {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 5;
+}
+
+.empty__arc {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: check-draw 900ms var(--ease-out) 150ms forwards;
+}
+
+.empty__stop-a {
+  stop-color: var(--color-accent);
+}
+
+.empty__stop-b {
+  stop-color: light-dark(#6a46d4, #b79cff);
+}
+
+.empty__dot {
+  fill: var(--color-accent);
+}
+
+.empty__title {
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-semibold);
+}
+
+.empty--first .empty__title {
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  letter-spacing: var(--tracking-tight);
+}
+
+.empty__text {
+  max-width: 34ch;
+  color: var(--color-text-muted);
+}
+
+.empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1-5);
+}
+
+.button--primary {
+  background: var(--gradient-accent);
+  color: var(--color-on-accent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), var(--shadow-tile);
+}
+
+.button--primary:hover {
+  filter: brightness(1.06);
+}
+
+.button--secondary {
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  color: var(--color-text);
+  box-shadow: var(--glass-highlight), 0 0 0 0.5px var(--color-border);
+}
+
+.button--secondary:hover {
+  background: var(--glass-fill-hover);
+}
+
+/* ── Countdown values ──────────────────────────────────────── */
+.countdown--long {
+  font-size: 17px;
+}
+
+/* Fade the numbers (and the unit label) in when the unit changes. */
+.countdown__value,
+.unit-label__text {
+  display: inline-block;
+  animation: value-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes value-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 /* ── Buttons ───────────────────────────────────────────────── */
@@ -1186,6 +1301,9 @@ button.tile:active {
 
 /* Reduced motion: keep the state changes, drop the movement. */
 @media (prefers-reduced-motion: reduce) {
+  .empty,
+  .countdown__value,
+  .unit-label__text,
   .editor,
   .popover,
   .occurrence,
@@ -1195,7 +1313,8 @@ button.tile:active {
     animation: none;
   }
 
-  .countdown__check {
+  .countdown__check,
+  .empty__arc {
     animation: none;
     stroke-dashoffset: 0;
   }
@@ -1240,4 +1359,99 @@ button.tile:active {
 ::view-transition-new(root) {
   animation-duration: var(--duration-slow);
   animation-timing-function: var(--ease-out);
+}
+
+/* ── Repeat controls ───────────────────────────────────────── */
+.repeat,
+.repeat__end {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.repeat__end-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Native <select> dressed as a field button: keeps the platform's
+   keyboard and screen-reader behaviour. */
+.select-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  height: var(--size-icon-button);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-field);
+  color: var(--color-text);
+  transition: border-color var(--duration-instant) var(--ease-out),
+    background-color var(--duration-instant) var(--ease-out);
+}
+
+.select-field:hover {
+  border-color: var(--color-border-strong);
+}
+
+.select-field:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.select-field select {
+  appearance: none;
+  min-width: 0;
+  height: 100%;
+  padding: 0 calc(var(--space-1) + 20px) 0 calc(var(--space-1) + 24px);
+  border: 0;
+  background: none;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.select-field select:focus-visible {
+  outline: none;
+}
+
+.select-field .icon {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-subtle);
+  pointer-events: none;
+}
+
+.select-field .icon:first-child {
+  left: var(--space-1);
+}
+
+.select-field .icon:last-child {
+  right: var(--space-1);
+}
+
+.select-field--compact select {
+  padding-left: var(--space-1);
+}
+
+/* The calendar and time popovers render in the light/dark scheme of the page;
+   native select menus follow color-scheme too. */
+.select-field option {
+  background: light-dark(#ffffff, #1d1f27);
+  color: var(--color-text);
+}
+
+.repeat__count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.text-input--narrow {
+  width: 64px;
 }

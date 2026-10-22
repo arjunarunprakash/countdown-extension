@@ -1,11 +1,14 @@
+import { batch } from "@preact/signals";
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { useDismiss, type DismissReason } from "../hooks/useDismiss";
 import { differs, fieldsOf, withFields, type ItemFields } from "../lib/items";
 import type { Item, Unit } from "../lib/types";
-import { addItem, removeItems, saveItem } from "../state/store";
+import { presetOf } from "../lib/recurrence";
+import { addItem, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
 import { editing, focusTile, startCompletion } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { DatePicker } from "./DatePicker";
+import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { Icon } from "./Icon";
 import { TimeField } from "./TimeField";
 import { TypeToggle } from "./TypeToggle";
@@ -17,6 +20,14 @@ interface Props {
   now: number;
 }
 
+/** The repeat settings an item starts with: its series' rule, or none. */
+function initialRepeat(item: Item): RepeatValue {
+  const s = item.seriesId ? series.value.find((x) => x.id === item.seriesId) : undefined;
+  if (!s) return NO_REPEAT;
+  const preset = presetOf(s.rule);
+  return preset === "custom" ? { preset, end: s.end, custom: s.rule } : { preset, end: s.end };
+}
+
 /**
  * A tile in its expanded edit state. Every field edits a local draft; the
  * draft is saved when the editor closes (Escape, Enter in the title, or a
@@ -24,6 +35,10 @@ interface Props {
  */
 export function EditorRow({ item, isNew, unit, now }: Props) {
   const [fields, setFields] = useState<ItemFields>(() => fieldsOf(item));
+  const [initial] = useState(() => initialRepeat(item));
+  const [repeat, setRepeat] = useState<RepeatValue>(initial);
+  const latestRepeat = useRef(repeat);
+  latestRepeat.current = repeat;
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef(fields);
@@ -39,17 +54,42 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
     setFields((f) => ({ ...f, [key]: value }));
 
   /** Saves the draft; returns the saved item, or null if nothing was kept. */
-  const save = (): Item | null => {
+  const save = (): Item | null => batch(saveDraft);
+
+  const saveDraft = (): Item | null => {
     const f = latest.current;
+    const r = latestRepeat.current;
+    const rule = ruleOf(r);
+    const repeatChanged = !sameRepeat(r, initial);
     const stamp = new Date();
+
     if (isNew) {
       if (!f.title.trim()) return null;
-      const created = withFields(item, f, stamp);
+      let created = withFields(item, f, stamp);
+      if (rule) created = makeRepeating(created, rule, r.end);
       addItem(created);
       return created;
     }
-    const next = withFields(item, { ...f, title: f.title.trim() || item.title }, stamp);
+
+    let next = withFields(item, { ...f, title: f.title.trim() || item.title }, stamp);
+    if (!item.seriesId) {
+      if (rule) next = makeRepeating(next, rule, r.end);
+      if (rule || differs(item, next)) saveItem(next);
+      return next;
+    }
+
+    // Part of a series: date/time/notes edits apply to this occurrence;
+    // title/type also update the series so later occurrences match.
     if (differs(item, next)) saveItem(next);
+    if (repeatChanged) {
+      changeSeriesRule(item.seriesId, next, rule, r.end);
+      if (!rule) {
+        const { seriesId: _, ...single } = next;
+        return single;
+      }
+    } else if (next.title !== item.title || next.type !== item.type) {
+      saveSeries(item.seriesId, next);
+    }
     return next;
   };
 
@@ -89,6 +129,8 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
           <DatePicker value={fields.date} onChange={(v) => set("date", v)} />
           <TimeField value={fields.time} onChange={(v) => set("time", v)} />
         </div>
+
+        <RepeatField date={fields.date} value={repeat} onChange={setRepeat} />
 
         <textarea
           class="editor__notes"

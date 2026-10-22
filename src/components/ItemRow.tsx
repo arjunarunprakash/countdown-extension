@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef } from "preact/hooks";
 import { formatItemDate } from "../lib/dates";
 import type { Item, Row, Unit } from "../lib/types";
+import { describeEnd, describeRule } from "../lib/recurrence";
+import { series } from "../state/store";
 import { completing, editing } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { Icon } from "./Icon";
@@ -38,13 +40,26 @@ function useCollapse(active: boolean) {
   return ref;
 }
 
+/** "Weekly on Monday · until 31 December", or null if the item doesn't repeat. */
+function repeatLabel(seriesId: string | undefined): string | null {
+  const s = seriesId ? series.value.find((x) => x.id === seriesId) : undefined;
+  if (!s) return null;
+  const end = describeEnd(s.end);
+  return `${describeRule(s.rule, new Date(s.start))}${end ? ` · ${end}` : ""}`;
+}
+
 function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: number; past: boolean }) {
   const isCompleting = completing.value.has(item.id);
   const ref = useCollapse(isCompleting);
   return (
     <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}`}>
       <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} />
-      <ItemTile item={item} past={past} onOpen={() => (editing.value = { kind: "item", id: item.id })} />
+      <ItemTile
+        item={item}
+        past={past}
+        meta={!past && repeatLabel(item.seriesId) && <RepeatMeta text={repeatLabel(item.seriesId)!} />}
+        onOpen={() => (editing.value = { kind: "item", id: item.id })}
+      />
     </li>
   );
 }
@@ -61,18 +76,22 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
       <div class="stack">
         <ItemTile
           item={head}
-          label={`${head.title}, repeating. Next ${head.type === "due" ? "due" : "starts"} ${date}, ${more} more after. Open series`}
+          label={`${head.title}, ${repeatLabel(seriesId) ?? "repeating"}. Next ${head.type === "due" ? "due" : "starts"} ${date}. Open series`}
           onOpen={() => (editing.value = { kind: "series", seriesId })}
-          meta={
-            <span class="stack__count">
-              <Icon name="repeat" />
-              Repeats · {more} more
-            </span>
-          }
+          meta={<RepeatMeta text={repeatLabel(seriesId) ?? `Repeats · ${more} more`} />}
         />
         {layers >= 1 && <div class="stack__layer stack__layer--1" aria-hidden="true" />}
         {layers >= 2 && <div class="stack__layer stack__layer--2" aria-hidden="true" />}
       </div>
     </li>
+  );
+}
+
+function RepeatMeta({ text }: { text: string }) {
+  return (
+    <span class="stack__count">
+      <Icon name="repeat" />
+      {text}
+    </span>
   );
 }

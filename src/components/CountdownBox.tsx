@@ -38,15 +38,19 @@ export function CountdownBox({ item, unit, now, completing = false }: Props) {
   }
 
   const full = describeRemaining(target, now);
+  const text = abbreviate(value);
   return (
     <div
-      class="countdown"
+      class={`countdown${text.length >= 5 ? " countdown--long" : ""}`}
       role="img"
       aria-label={`${full} left`}
       data-tooltip={`${full} left`}
       data-tooltip-align="start"
     >
-      {abbreviate(value)}
+      {/* Keyed by unit so switching units replays a short fade; per-second ticks don't. */}
+      <span key={unit} class="countdown__value">
+        {text}
+      </span>
     </div>
   );
 }

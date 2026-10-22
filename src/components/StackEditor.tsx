@@ -4,12 +4,19 @@ import { relativeLabel } from "../lib/countdown";
 import { formatItemDate, formatShortDateTime } from "../lib/dates";
 import { formatTime } from "../lib/parse";
 import type { Item, ItemType, Unit } from "../lib/types";
-import { removeItems, saveSeries } from "../state/store";
+import { presetOf } from "../lib/recurrence";
+import { changeSeriesRule, removeItems, removeSeries, saveSeries, series } from "../state/store";
 import { completing, editing, focusTile, startCompletion } from "../state/ui";
 import { Checkbox } from "./Checkbox";
 import { CountdownBox } from "./CountdownBox";
 import { Icon } from "./Icon";
+import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { TypeToggle } from "./TypeToggle";
+
+const partsOf = (iso: string) => {
+  const d = new Date(iso);
+  return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+};
 
 interface Props {
   seriesId: string;
@@ -28,6 +35,15 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
   const [title, setTitle] = useState(head.title);
   const [type, setType] = useState<ItemType>(head.type);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [initialRepeat] = useState<RepeatValue>(() => {
+    const s = series.value.find((x) => x.id === seriesId);
+    if (!s) return NO_REPEAT;
+    const preset = presetOf(s.rule);
+    return preset === "custom" ? { preset, end: s.end, custom: s.rule } : { preset, end: s.end };
+  });
+  const [repeat, setRepeat] = useState(initialRepeat);
+  const latestRepeat = useRef(repeat);
+  latestRepeat.current = repeat;
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef({ title, type });
@@ -43,7 +59,14 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
   const selectedHere = [...selected].filter((id) => ids.has(id));
 
   const close = (reason: DismissReason | "enter") => {
-    saveSeries(seriesId, latest.current);
+    const r = latestRepeat.current;
+    // Only series with a stored rule can be restarted; others just get renamed.
+    if (!sameRepeat(r, initialRepeat) && initialRepeat !== NO_REPEAT) {
+      const { title: t, type: ty } = latest.current;
+      changeSeriesRule(seriesId, { ...head, title: t.trim() || head.title, type: ty }, ruleOf(r), r.end);
+    } else {
+      saveSeries(seriesId, latest.current);
+    }
     editing.value = null;
     if (reason !== "outside") focusTile(items[0]!.id);
   };
@@ -79,6 +102,9 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
           }}
         />
         <TypeToggle value={type} onChange={setType} />
+        {initialRepeat !== NO_REPEAT && (
+          <RepeatField date={partsOf(head.dateTime)} value={repeat} onChange={setRepeat} />
+        )}
 
         <div class="occurrences">
           <div class="occurrences__head">
@@ -144,11 +170,20 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
             class="button button--danger-quiet"
             disabled={selectedHere.length === 0}
             onClick={() => {
-              removeItems(selectedHere);
+              // Removing every upcoming occurrence means stopping the series;
+              // otherwise new occurrences would be generated to replace them.
+              if (allChecked && initialRepeat !== NO_REPEAT) {
+                editing.value = null;
+                removeSeries(seriesId);
+              } else {
+                removeItems(selectedHere);
+              }
               setSelected(new Set());
             }}
           >
-            Remove selected{selectedHere.length > 0 && ` (${selectedHere.length})`}
+            {allChecked && initialRepeat !== NO_REPEAT
+              ? "Remove series"
+              : `Remove selected${selectedHere.length > 0 ? ` (${selectedHere.length})` : ""}`}
           </button>
         </div>
       </div>

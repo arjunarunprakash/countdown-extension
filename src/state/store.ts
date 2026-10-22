@@ -1,6 +1,7 @@
 import { batch, signal } from "@preact/signals";
 import { toLocalISO } from "../lib/dates";
 import * as ops from "../lib/items";
+import { topUp, type RepeatEnd, type RepeatRule, type Series } from "../lib/recurrence";
 import {
   DEFAULT_PREFS,
   defaultBackend,
@@ -8,6 +9,7 @@ import {
   parseCompletions,
   parseItems,
   parsePrefs,
+  parseSeries,
   type Prefs,
   type StorageBackend,
 } from "../lib/storage";
@@ -16,6 +18,7 @@ import { showToast } from "./toast";
 
 export const items = signal<Item[]>([]);
 export const completions = signal<CompletionRecord[]>([]);
+export const series = signal<Series[]>([]);
 export const prefs = signal<Prefs>(DEFAULT_PREFS);
 export const ready = signal(false);
 
@@ -27,6 +30,7 @@ export async function initStore(b: StorageBackend = defaultBackend()) {
   batch(() => {
     items.value = state.items;
     completions.value = state.completions;
+    series.value = state.series;
     prefs.value = state.prefs;
     ready.value = true;
   });
@@ -35,24 +39,35 @@ export async function initStore(b: StorageBackend = defaultBackend()) {
     batch(() => {
       if ("items" in changes) items.value = parseItems(changes.items);
       if ("completions" in changes) completions.value = parseCompletions(changes.completions);
+      if ("series" in changes) series.value = parseSeries(changes.series);
       if ("prefs" in changes) prefs.value = parsePrefs(changes.prefs);
     });
   });
 }
 
+// Each setter persists *before* updating the signal. Updating a signal can
+// synchronously run effects (e.g. ensureOccurrences) that write newer data;
+// persisting first guarantees the newest write reaches storage last.
+
 function setItems(next: Item[]) {
-  items.value = next;
   void backend.set({ items: next });
+  items.value = next;
 }
 
 function setCompletions(next: CompletionRecord[]) {
-  completions.value = next;
   void backend.set({ completions: next });
+  completions.value = next;
+}
+
+function setSeries(next: Series[]) {
+  void backend.set({ series: next });
+  series.value = next;
 }
 
 export function setPrefs(patch: Partial<Prefs>) {
-  prefs.value = { ...prefs.value, ...patch };
-  void backend.set({ prefs: prefs.value });
+  const next = { ...prefs.value, ...patch };
+  void backend.set({ prefs: next });
+  prefs.value = next;
 }
 
 // ── Actions ───────────────────────────────────────────────────
@@ -65,16 +80,144 @@ export function saveItem(item: Item) {
   setItems(items.value.map((i) => (i.id === item.id ? item : i)));
 }
 
-/** Applies title/type changes to every occurrence of a recurring series. */
+/**
+ * Applies title/type changes to a series: its template (future occurrences)
+ * and every upcoming, uncompleted occurrence. Past and completed occurrences
+ * keep the title they had.
+ */
 export function saveSeries(seriesId: string, patch: Pick<Item, "title" | "type">, now = new Date()) {
   const title = patch.title.trim();
-  setItems(
-    items.value.map((i) =>
-      i.seriesId === seriesId && (i.title !== title || i.type !== patch.type)
-        ? { ...i, title: title || i.title, type: patch.type, updatedAt: toLocalISO(now) }
-        : i,
-    ),
-  );
+  const t = now.getTime();
+  batch(() => {
+    setItems(
+      items.value.map((i) =>
+        i.seriesId === seriesId &&
+        !i.completedAt &&
+        Date.parse(i.dateTime) > t &&
+        ((title && i.title !== title) || i.type !== patch.type)
+          ? { ...i, title: title || i.title, type: patch.type, updatedAt: toLocalISO(now) }
+          : i,
+      ),
+    );
+    const s = series.value.find((x) => x.id === seriesId);
+    if (s && ((title && s.template.title !== title) || s.template.type !== patch.type)) {
+      setSeries(
+        series.value.map((x) =>
+          x.id === seriesId ? { ...x, template: { ...x.template, title: title || x.template.title, type: patch.type } } : x,
+        ),
+      );
+    }
+  });
+}
+
+// ── Recurring series ──────────────────────────────────────────
+
+/**
+ * Turns an item into the first occurrence of a new repeating series.
+ * Call inside batch() together with adding/saving the returned item, so
+ * occurrence generation sees both at once.
+ */
+export function makeRepeating(item: Item, rule: RepeatRule, end: RepeatEnd): Item {
+  const s: Series = {
+    id: crypto.randomUUID(),
+    epoch: 0,
+    start: item.dateTime,
+    rule,
+    end,
+    template: { title: item.title, type: item.type, ...(item.notes ? { notes: item.notes } : {}) },
+    nextIndex: 1,
+  };
+  if (item.allDay) s.allDay = true;
+  setSeries([...series.value, s]);
+  return { ...item, seriesId: s.id };
+}
+
+/**
+ * Changes a series' repeat rule, restarting it from `anchor` (an upcoming
+ * occurrence that is kept). Other upcoming occurrences are regenerated;
+ * past and completed ones stay. A null rule stops the series and leaves
+ * the anchor as a one-off item.
+ */
+export function changeSeriesRule(seriesId: string, anchor: Item, rule: RepeatRule | null, end: RepeatEnd, now = new Date()) {
+  const s = series.value.find((x) => x.id === seriesId);
+  if (!s) return;
+  const t = now.getTime();
+  const isUpcomingSibling = (i: Item) =>
+    i.seriesId === seriesId && i.id !== anchor.id && !i.completedAt && Date.parse(i.dateTime) > t;
+
+  batch(() => {
+    const kept = items.value.filter((i) => !isUpcomingSibling(i));
+    if (rule) {
+      setItems(kept.map((i) => (i.id === anchor.id ? { ...anchor, seriesId } : i)));
+      const restarted: Series = {
+        ...s,
+        epoch: s.epoch + 1,
+        start: anchor.dateTime,
+        rule,
+        end,
+        template: { title: anchor.title, type: anchor.type, ...(anchor.notes ? { notes: anchor.notes } : {}) },
+        nextIndex: 1,
+      };
+      if (anchor.allDay) restarted.allDay = true;
+      else delete restarted.allDay;
+      setSeries(series.value.map((x) => (x.id === seriesId ? restarted : x)));
+    } else {
+      setItems(
+        kept.map((i) => {
+          if (i.id !== anchor.id) return i;
+          const { seriesId: _, ...single } = anchor;
+          return single;
+        }),
+      );
+      setSeries(series.value.filter((x) => x.id !== seriesId));
+    }
+  });
+}
+
+/** Stops a series: removes its upcoming occurrences and the rule, with undo. */
+export function removeSeries(seriesId: string, now = new Date()) {
+  const s = series.value.find((x) => x.id === seriesId);
+  const t = now.getTime();
+  const ids = items.value
+    .filter((i) => i.seriesId === seriesId && !i.completedAt && Date.parse(i.dateTime) > t)
+    .map((i) => i.id);
+  const { next, removed } = ops.removeIds(items.value, new Set(ids));
+  batch(() => {
+    setItems(next);
+    if (s) setSeries(series.value.filter((x) => x.id !== seriesId));
+  });
+  showToast({
+    message: "Repeating item removed",
+    action: {
+      label: "Undo",
+      run: () =>
+        batch(() => {
+          setItems(ops.restore(items.value, removed));
+          if (s && !series.value.some((x) => x.id === s.id)) setSeries([...series.value, s]);
+        }),
+    },
+  });
+}
+
+/**
+ * Generates upcoming occurrences for every series that is running low.
+ * Safe to call often: it only writes when something was added.
+ */
+export function ensureOccurrences(now: number) {
+  if (!ready.value || series.value.length === 0) return;
+  const added: Item[] = [];
+  let changed = false;
+  const nextSeries = series.value.map((s) => {
+    const result = topUp(s, [...items.value, ...added], now);
+    added.push(...result.added);
+    if (result.series !== s) changed = true;
+    return result.series;
+  });
+  if (added.length === 0 && !changed) return;
+  batch(() => {
+    if (added.length) setItems([...items.value, ...added]);
+    if (changed) setSeries(nextSeries);
+  });
 }
 
 export function removeItems(ids: Iterable<string>) {
