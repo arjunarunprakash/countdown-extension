@@ -2,7 +2,7 @@
 
 A minimal Chrome extension that lists your deadlines and event start times in Chrome's side panel, each with a live countdown.
 
-> **Status:** Phase 3 of 6: live countdowns with unit cycling, repeating items, Overdue and Completed sections, and an empty state. Export (Phase 4) and import (Phase 5) are next.
+> **Status:** Phase 4 of 6: selection mode with export to Google Calendar or `.ics`, and bulk remove. Import (Phase 5) is next.
 
 ## Setup
 
@@ -68,6 +68,17 @@ tests/             Vitest unit tests
 - **Editing.** Changes save when the editor closes: press Escape, press Enter in the title, or click anywhere outside it. Clearing the time makes an item all-day. Typed times accept `3pm`, `3:30 p.m.`, `15:00`, `1500`, `noon` and `midnight`; a bare number such as `9` is read as 24-hour time.
 - **Undo.** Removing or completing shows a toast with Undo for 5 seconds. The timer pauses while you hover over or focus the toast, and Cmd/Ctrl+Z also undoes. A new toast replaces the previous one, and the earlier change stands.
 - **Open stacks.** An expanded stack spans the full row. You can rename the series, switch Due/Starts for every occurrence at once, and complete or remove occurrences one at a time or in bulk with Select all and Remove selected.
+- **Selection and export.** The Export button enters selection mode: a checkbox column slides in, Select all appears beside the unit label, and a bottom sheet slides up. Cancel, Done, Escape or the Export button again leave it.
+  - Upcoming items and overdue items can be selected. A repeating stack is selected as a whole series. Completed items can't be selected.
+  - **Google Calendar:** for one selected entry, opens Google's prefilled "new event" page. For several, it downloads an `.ics` file and links to Google's import page, because Google's link can only create one event.
+  - **Download .ics:** works with Apple Calendar, Outlook and any RFC 5545 calendar.
+  - **Remove:** removes the selected items, and whole series, with a single Undo.
+  - **Share link:** a disabled "Soon" placeholder; it needs a backend.
+- **Exported files.** Valid RFC 5545: CRLF line endings, lines folded at 75 bytes, a UID and DTSTAMP on every event.
+  - Deadlines and start times are points in time, so events have no end time. All-day items are exported as all-day events.
+  - One-off times are written in UTC. Repeating series use floating local time, so "10:00 every Monday" stays at 10:00 across daylight-saving changes. Due vs. Starts is kept in an `X-COUNTDOWN-TYPE` property so a later re-import can restore it.
+  - A series exports as one repeating event from its next occurrence. Removed occurrences become `EXDATE`s, and moved occurrences become separate events.
+  - Month-end rules use the simplest, most widely supported form. The 31st becomes "last day of the month" and 29 February becomes "last day of February", both exact. For the 29th or 30th, other calendars skip months without that day, whereas the app uses the last day.
 - **Look and theme.** Surfaces use a frosted-glass material (translucent fill, backdrop blur, bright hairline edge) over a soft fixed gradient. The header's theme button cycles **System → Light → Dark**; the choice is saved, and the panel cross-fades between themes. Text contrast is checked against the most saturated part of the gradient. With *Reduce transparency* turned on in the OS, surfaces become solid.
 - **Dates.** Dates always display as `Thursday, 29 October 2026, 3:00 PM`; typed dates use MM/DD/YYYY. Times are stored with their UTC offset and exported in UTC.
 - **All-day events.** Items imported as all-day events show no time and count down to the start of that day.

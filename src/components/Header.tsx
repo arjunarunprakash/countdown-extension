@@ -1,20 +1,38 @@
 import { nextUnit, UNIT_LABEL } from "../lib/countdown";
 import type { Unit } from "../lib/types";
+import { enterSelection, exitSelection, isSelecting, selected, selectionMode, setSelected } from "../state/selection";
 import { prefs, setPrefs } from "../state/store";
-import { openImport } from "../state/ui";
 import { cycleTheme, THEME_LABEL } from "../state/theme";
+import { openImport } from "../state/ui";
+import { Checkbox } from "./Checkbox";
 import { IconButton } from "./IconButton";
+
+const THEME_ICON = { system: "monitor", light: "sun", dark: "moon" } as const;
 
 interface Props {
   unit: Unit;
   onNew: () => void;
+  /** Keys selectable in selection mode, for Select all. */
+  selectable: string[];
 }
 
-const THEME_ICON = { system: "monitor", light: "sun", dark: "moon" } as const;
+export function Header({ unit, onNew, selectable }: Props) {
+  const selecting = isSelecting.value;
+  const count = selectable.filter((k) => selected.value.has(k)).length;
+  const all = count > 0 && count === selectable.length;
 
-export function Header({ unit, onNew }: Props) {
   return (
     <header class="header grid-row">
+      <div class="select-cell" inert={!selecting}>
+        <Checkbox
+          checked={all}
+          indeterminate={count > 0 && !all}
+          disabled={selectable.length === 0}
+          onChange={(on) => setSelected(on ? selectable : [])}
+          label="Select all"
+          hideLabel
+        />
+      </div>
       <button
         type="button"
         class="unit-label"
@@ -32,9 +50,15 @@ export function Header({ unit, onNew }: Props) {
         Showing time left in {unit}
       </span>
       <div class="header__actions">
-        <IconButton icon="plus" label="New item" onClick={onNew} />
-        <IconButton icon="import" label="Import" onClick={openImport} />
-        <IconButton icon="export" label="Export" />
+        <IconButton icon="plus" label="New item" onClick={onNew} disabled={selecting} />
+        <IconButton icon="import" label="Import" onClick={openImport} disabled={selecting} />
+        <IconButton
+          id="export-button"
+          icon="export"
+          label="Export"
+          pressed={selectionMode.value === "export"}
+          onClick={() => (selectionMode.value === "export" ? exitSelection() : enterSelection("export"))}
+        />
         <IconButton
           icon={THEME_ICON[prefs.value.theme]}
           label={`Theme: ${THEME_LABEL[prefs.value.theme]}`}

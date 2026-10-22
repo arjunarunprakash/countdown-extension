@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "preact/hooks";
+import { useLayoutEffect, useRef } from "preact/hooks";
 
 interface Props {
   checked: boolean;
@@ -12,7 +12,7 @@ interface Props {
 
 export function Checkbox({ checked, indeterminate = false, onChange, label, hideLabel = false, disabled }: Props) {
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
 

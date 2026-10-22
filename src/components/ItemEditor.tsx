@@ -7,6 +7,7 @@ import { presetOf } from "../lib/recurrence";
 import { addItem, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
 import { editing, focusTile, startCompletion } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
+import { SelectCell } from "./SelectCell";
 import { DatePicker } from "./DatePicker";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { Icon } from "./Icon";
@@ -105,6 +106,7 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
 
   return (
     <li class="row grid-row row--editing">
+      <SelectCell />
       <CountdownBox item={preview} unit={unit} now={now} />
       <div ref={ref} class="editor" role="group" aria-label={isNew ? "New item" : `Edit ${item.title}`}>
         <input

@@ -10,15 +10,20 @@ interface Props {
   /** Accessible name override (stacks describe the whole series). */
   label?: string;
   onOpen?: () => void;
+  /** In selection mode the tile toggles its checkbox; the checkbox is the accessible control. */
+  selecting?: boolean;
+  selected?: boolean;
 }
 
-export function ItemTile({ item, past = false, meta, label, onOpen }: Props) {
+export function ItemTile({ item, past = false, meta, label, onOpen, selecting = false, selected = false }: Props) {
   const date = formatItemDate(new Date(item.dateTime), item.allDay);
   return (
     <button
       type="button"
-      class={`tile${past ? " tile--past" : ""}`}
+      class={`tile${past ? " tile--past" : ""}${selected ? " tile--selected" : ""}`}
       data-tile-id={item.id}
+      tabIndex={selecting ? -1 : undefined}
+      aria-hidden={selecting || undefined}
       aria-label={label ?? `${item.title}, ${item.type === "due" ? "due" : "starts"} ${date}. Edit`}
       onClick={onOpen}
     >

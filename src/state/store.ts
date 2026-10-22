@@ -176,24 +176,49 @@ export function changeSeriesRule(seriesId: string, anchor: Item, rule: RepeatRul
 
 /** Stops a series: removes its upcoming occurrences and the rule, with undo. */
 export function removeSeries(seriesId: string, now = new Date()) {
-  const s = series.value.find((x) => x.id === seriesId);
+  removeMany([], [seriesId], now);
+}
+
+/**
+ * Removes items and whole series (their upcoming occurrences and rules) as
+ * one change, with a single Undo that restores all of it.
+ */
+export function removeMany(itemIds: Iterable<string>, seriesIds: Iterable<string>, now = new Date()) {
   const t = now.getTime();
-  const ids = items.value
-    .filter((i) => i.seriesId === seriesId && !i.completedAt && Date.parse(i.dateTime) > t)
-    .map((i) => i.id);
-  const { next, removed } = ops.removeIds(items.value, new Set(ids));
+  const picked = new Set(itemIds);
+  const sIds = new Set(seriesIds);
+  const ids = new Set(picked);
+  for (const i of items.value) {
+    if (i.seriesId && sIds.has(i.seriesId) && !i.completedAt && Date.parse(i.dateTime) > t) ids.add(i.id);
+  }
+  const removedSeries = series.value.filter((s) => sIds.has(s.id));
+  const { next, removed } = ops.removeIds(items.value, ids);
+  if (removed.length === 0 && removedSeries.length === 0) return;
+
   batch(() => {
     setItems(next);
-    if (s) setSeries(series.value.filter((x) => x.id !== seriesId));
+    if (removedSeries.length) setSeries(series.value.filter((s) => !sIds.has(s.id)));
   });
+
+  // Count what the user picked: each item and each series once.
+  const pickedRemoved = removed.filter((r) => picked.has(r.item.id)).length;
+  const count = pickedRemoved + removedSeries.length;
+  const message =
+    pickedRemoved === 0 && removedSeries.length === 1
+      ? "Repeating item removed"
+      : count === 1
+        ? "Item removed"
+        : `${count} items removed`;
+
   showToast({
-    message: "Repeating item removed",
+    message,
     action: {
       label: "Undo",
       run: () =>
         batch(() => {
           setItems(ops.restore(items.value, removed));
-          if (s && !series.value.some((x) => x.id === s.id)) setSeries([...series.value, s]);
+          const missing = removedSeries.filter((s) => !series.value.some((x) => x.id === s.id));
+          if (missing.length) setSeries([...series.value, ...missing]);
         }),
     },
   });

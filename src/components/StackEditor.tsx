@@ -9,6 +9,7 @@ import { changeSeriesRule, removeItems, removeSeries, saveSeries, series } from 
 import { completing, editing, focusTile, startCompletion } from "../state/ui";
 import { Checkbox } from "./Checkbox";
 import { CountdownBox } from "./CountdownBox";
+import { SelectCell } from "./SelectCell";
 import { Icon } from "./Icon";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { TypeToggle } from "./TypeToggle";
@@ -85,6 +86,7 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
 
   return (
     <li class="row grid-row row--editing row--stack-open">
+      <SelectCell />
       <CountdownBox item={head} unit={unit} now={now} />
       <div ref={ref} class="editor editor--stack" role="group" aria-label={`Edit series ${head.title}`}>
         <input

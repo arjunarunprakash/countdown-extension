@@ -2,12 +2,14 @@ import { useLayoutEffect, useRef } from "preact/hooks";
 import { formatItemDate } from "../lib/dates";
 import type { Item, Row, Unit } from "../lib/types";
 import { describeEnd, describeRule } from "../lib/recurrence";
+import { isSelecting, selected, seriesKey, toggleSelected } from "../state/selection";
 import { series } from "../state/store";
 import { completing, editing } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { Icon } from "./Icon";
 import { EditorRow } from "./ItemEditor";
 import { ItemTile } from "./ItemTile";
+import { SelectCell } from "./SelectCell";
 import { StackEditorRow } from "./StackEditor";
 
 interface Props {
@@ -53,12 +55,15 @@ function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: num
   const ref = useCollapse(isCompleting);
   return (
     <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}`}>
+      <SelectCell selKey={item.id} label={item.title} />
       <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} />
       <ItemTile
         item={item}
         past={past}
         meta={!past && repeatLabel(item.seriesId) && <RepeatMeta text={repeatLabel(item.seriesId)!} />}
-        onOpen={() => (editing.value = { kind: "item", id: item.id })}
+        selecting={isSelecting.value}
+        selected={selected.value.has(item.id)}
+        onOpen={() => (isSelecting.value ? toggleSelected(item.id) : (editing.value = { kind: "item", id: item.id }))}
       />
     </li>
   );
@@ -72,12 +77,15 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
   const date = formatItemDate(new Date(head.dateTime), head.allDay);
   return (
     <li class="row row--stack grid-row" style={{ "--stack-layers": layers }}>
+      <SelectCell selKey={seriesKey(seriesId)} label={`${head.title} (all occurrences)`} />
       <CountdownBox item={head} unit={unit} now={now} completing={isCompleting} />
       <div class="stack">
         <ItemTile
           item={head}
           label={`${head.title}, ${repeatLabel(seriesId) ?? "repeating"}. Next ${head.type === "due" ? "due" : "starts"} ${date}. Open series`}
-          onOpen={() => (editing.value = { kind: "series", seriesId })}
+          selecting={isSelecting.value}
+          selected={selected.value.has(seriesKey(seriesId))}
+          onOpen={() => (isSelecting.value ? toggleSelected(seriesKey(seriesId)) : (editing.value = { kind: "series", seriesId }))}
           meta={<RepeatMeta text={repeatLabel(seriesId) ?? `Repeats · ${more} more`} />}
         />
         {layers >= 1 && <div class="stack__layer stack__layer--1" aria-hidden="true" />}

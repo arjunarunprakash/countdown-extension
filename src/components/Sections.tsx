@@ -6,6 +6,8 @@ import type { Item, Unit } from "../lib/types";
 import { clearCompleted, prefs, removeItems, setPrefs, uncompleteItem } from "../state/store";
 import { Icon } from "./Icon";
 import { ItemRow } from "./ItemRow";
+import { SelectCell } from "./SelectCell";
+import { isSelecting } from "../state/selection";
 
 interface SectionProps {
   title: string;
@@ -96,10 +98,12 @@ function CompletedRow({ item, now }: { item: Item; now: number }) {
   const original = formatShortDateTime(new Date(item.dateTime), item.allDay, new Date(now));
   return (
     <li class="row grid-row row--completed">
+      <SelectCell />
       <div class="countdown countdown--completed" role="img" aria-label="Completed">
         <Icon name="check" />
       </div>
-      <div class="tile tile--completed">
+      {/* Completed items aren't part of selection; their actions pause meanwhile. */}
+      <div class="tile tile--completed" inert={isSelecting.value}>
         <span class="tile__top">
           <span class="tile__title">{item.title}</span>
           <span class="tile__actions">

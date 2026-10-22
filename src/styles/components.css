@@ -35,8 +35,60 @@
    sits exactly above the countdown column. */
 .grid-row {
   display: grid;
-  grid-template-columns: var(--size-countdown-col) minmax(0, 1fr);
+  /* [selection checkbox] [countdown] [tile]. The checkbox column is 0px wide
+     outside selection mode; the row's negative margin cancels its gap. */
+  grid-template-columns: var(--select-col) var(--size-countdown-col) minmax(0, 1fr);
   column-gap: var(--space-1);
+  margin-left: calc(var(--space-1) * -1);
+  transition: grid-template-columns var(--duration-slow) var(--ease-out),
+    margin-left var(--duration-slow) var(--ease-out);
+}
+
+.app {
+  --select-col: 0px;
+}
+
+.app--selecting {
+  --select-col: 24px;
+}
+
+.app--selecting .grid-row {
+  margin-left: 0;
+}
+
+/* ── Selection ─────────────────────────────────────────────── */
+.select-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.app--selecting .select-cell {
+  overflow: visible; /* room for the focus ring */
+  opacity: 1;
+  transform: none;
+  transition-delay: 60ms;
+}
+
+.tile--selected,
+.tile--selected:hover {
+  background: linear-gradient(var(--color-accent-subtle), var(--color-accent-subtle)), var(--glass-fill-hover);
+  box-shadow: var(--glass-highlight), 0 0 0 1.5px var(--color-accent), var(--shadow-tile);
+}
+
+.app--selecting .row--completed {
+  opacity: 0.5;
+}
+
+/* Keep the last rows clear of the bottom sheet. */
+.app--sheet .list {
+  padding-bottom: calc(var(--sheet-h, 240px) + var(--space-2));
 }
 
 .header {
@@ -1095,7 +1147,7 @@ button.tile:active {
 }
 
 .row--stack-open > .editor {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
 }
 
 .occurrence__date {
@@ -1236,7 +1288,8 @@ button.tile:active {
   position: fixed;
   left: var(--space-2);
   right: var(--space-2);
-  bottom: var(--space-2);
+  /* Sits above the bottom sheet when one is open. */
+  bottom: calc(var(--sheet-h, 0px) + var(--space-2));
   z-index: 30;
   display: flex;
   justify-content: center;
@@ -1450,4 +1503,196 @@ button.tile:active {
 
 .text-input--narrow {
   width: 64px;
+}
+
+/* ── Bottom sheet ──────────────────────────────────────────── */
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border: 1px solid var(--glass-edge);
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--glass-fill-strong);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-highlight), 0 -12px 32px -12px light-dark(rgb(20 24 40 / 0.25), rgb(0 0 0 / 0.6));
+  animation: sheet-in var(--duration-slow) var(--ease-out);
+}
+
+.sheet[data-state="closing"] {
+  animation: sheet-out var(--duration-slow) var(--ease-in-out) forwards;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.sheet__grabber {
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.sheet__title {
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-semibold);
+}
+
+.sheet__count {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-0-5);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  animation: empty-in var(--duration-base) var(--ease-out);
+}
+
+.sheet__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.sheet__link:hover {
+  text-decoration: underline;
+}
+
+.sheet__link .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.sheet__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.sheet-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 48px;
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  background: var(--color-field);
+  box-shadow: 0 0 0 1px var(--color-border);
+  text-align: left;
+  transition: background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.sheet-action:hover:not(:disabled) {
+  background: var(--color-accent-subtle);
+}
+
+.sheet-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.sheet-action .icon {
+  color: var(--color-accent);
+}
+
+.sheet-action__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sheet-action__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.sheet-action__hint {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.sheet-action--danger .icon,
+.sheet-action--danger .sheet-action__label {
+  color: var(--color-danger);
+}
+
+.sheet-action--danger:hover:not(:disabled) {
+  background: var(--color-danger-subtle);
+}
+
+.sheet-action:disabled {
+  cursor: default;
+}
+
+.sheet-action:disabled .icon,
+.sheet-action:disabled .sheet-action__label {
+  color: var(--color-text-disabled);
+}
+
+.badge {
+  padding: 0 var(--space-0-5);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  color: var(--color-text-subtle);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.sheet__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheet[data-state="closing"],
+  .sheet__note {
+    animation: none;
+  }
 }
