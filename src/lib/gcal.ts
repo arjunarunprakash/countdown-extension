@@ -1,4 +1,5 @@
 import { occurrenceIndex, recurFor, type ExportEntry } from "./ics";
+import { wallDate } from "./recurrence";
 
 // Google Calendar's "create event" link. Times are sent as local wall-clock
 // time plus ctz (the user's time zone), which keeps repeating events at the
@@ -12,8 +13,11 @@ export const GCAL_IMPORT_URL = "https://calendar.google.com/calendar/r/settings/
 
 export function googleCalendarUrl(entry: ExportEntry, timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone): string {
   const item = entry.kind === "item" ? entry.item : entry.upcoming[0]!;
-  const when = new Date(item.dateTime);
   const allDay = entry.kind === "item" ? item.allDay : entry.series.allDay;
+  // A series following another zone is sent in that zone's wall time.
+  const zone = entry.kind === "series" && !allDay ? entry.series.timeZone : undefined;
+  if (zone) timeZone = zone;
+  const when = wallDate(new Date(item.dateTime), zone);
 
   // All-day: end date is exclusive. Timed: a point in time (start = end).
   const dates = allDay

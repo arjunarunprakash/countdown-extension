@@ -1696,3 +1696,209 @@ button.tile:active {
     animation: none;
   }
 }
+
+/* ── Import preview ────────────────────────────────────────── */
+.badge--accent {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 0 0 0 1px light-dark(rgb(52 81 209 / 0.25), rgb(163 178 255 / 0.3));
+  color: var(--color-accent);
+}
+
+.badge--muted {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.tile .badge {
+  flex: none;
+}
+
+/* Candidates stand out with a dashed accent edge until they're added. */
+.row--candidate .tile {
+  box-shadow: var(--glass-highlight), 0 0 0 1px light-dark(rgb(52 81 209 / 0.35), rgb(163 178 255 / 0.35)), var(--shadow-tile);
+}
+
+.row--candidate .tile--selected {
+  box-shadow: var(--glass-highlight), 0 0 0 1.5px var(--color-accent), var(--shadow-tile);
+}
+
+.row--duplicate .tile,
+.row--duplicate .countdown {
+  background: var(--glass-fill-muted);
+  box-shadow: var(--glass-highlight), 0 0 0 0.5px var(--color-border);
+}
+
+.row--duplicate .tile__title,
+.row--duplicate .tile__date {
+  color: var(--color-text-subtle);
+}
+
+.row--duplicate .countdown {
+  color: var(--color-text-subtle);
+}
+
+/* ── Import sheet ──────────────────────────────────────────── */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-0-5);
+  padding: var(--space-2);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-field);
+  color: var(--color-text-muted);
+  text-align: center;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.dropzone .icon {
+  width: 24px;
+  height: 24px;
+  color: var(--color-accent);
+}
+
+.dropzone--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.dropzone__text {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.dropzone__text strong {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.link-button {
+  color: var(--color-accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+.link-button:hover {
+  color: var(--color-accent-hover);
+}
+
+.link-button:disabled {
+  color: var(--color-text-disabled);
+  cursor: default;
+}
+
+.url-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.url-form__row {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.url-form__row .text-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: normal;
+}
+
+.field-hint {
+  margin-top: var(--space-0-5);
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  background: var(--color-field);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.import-summary > .icon {
+  color: var(--color-accent);
+}
+
+.import-summary__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.import-summary__source {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-summary__detail {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.import-summary .link-button {
+  font-size: var(--text-sm);
+}
+
+.sheet__status,
+.sheet__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.sheet__status {
+  color: var(--color-text-muted);
+}
+
+.sheet__error {
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+.spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sheet__footer .button--primary:disabled {
+  opacity: 0.5;
+  filter: none;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}

@@ -2,7 +2,7 @@
 
 A minimal Chrome extension that lists your deadlines and event start times in Chrome's side panel, each with a live countdown.
 
-> **Status:** Phase 4 of 6: selection mode with export to Google Calendar or `.ics`, and bulk remove. Import (Phase 5) is next.
+> **Status:** Phase 5 of 6: import from `.ics` files and calendar links, with a preview and duplicate detection. The accessibility pass, tests review and final docs (Phase 6) are next.
 
 ## Setup
 
@@ -74,6 +74,15 @@ tests/             Vitest unit tests
   - **Download .ics:** works with Apple Calendar, Outlook and any RFC 5545 calendar.
   - **Remove:** removes the selected items, and whole series, with a single Undo.
   - **Share link:** a disabled "Soon" placeholder; it needs a backend.
+- **Importing.** Import opens selection mode with an import sheet. Drop an `.ics` file anywhere on the panel, use **browse**, or paste a calendar link (`webcal://` or `https://`; Google's "Secret address in iCal format", Apple's public calendar link, Outlook's published `.ics`).
+  - Countdown asks for permission to read a link's site only when you fetch it, covering that host and its parent domain's subdomains, since calendar servers often redirect, e.g. to `pNN-caldav.icloud.com`. Plain `http://` links are upgraded to `https://`.
+  - Upcoming events appear in the list, pre-checked, with an **Import** badge. Past events are hidden and counted. **Add selected** imports them with one Undo; Cancel or Escape discards the preview.
+  - **Duplicates:** an event with the same title (ignoring case and spacing) and the same moment, or the same calendar UID, shows greyed out as **Already added**, unchecked. The UID check also catches re-importing a file this app exported.
+  - **Times:** time zones defined in the file (Outlook) are applied exactly. Standard zone names without a definition (often Google) are converted using the browser's time-zone data. Common Windows zone names are mapped to standard ones.
+  - Events become Starts items, to-dos with a due date become Due items, and Countdown's own exports restore Due vs. Starts.
+  - **Repeating events:** a rule the app can represent (daily, weekdays, weekly on chosen days, monthly, yearly, with an end) becomes a real series that keeps generating. Skipped and moved occurrences are honoured for the imported occurrences. Other rules, such as "second Tuesday", become a fixed stack of their next 6 occurrences.
+  - **Series from another time zone:** these follow that zone's clock, so a 9:30 IST meeting stays at 9:30 IST through your daylight-saving changes. They export with a `TZID` plus a generated `VTIMEZONE`.
+  - Calendars up to 10 MB, showing the first 300 upcoming events.
 - **Exported files.** Valid RFC 5545: CRLF line endings, lines folded at 75 bytes, a UID and DTSTAMP on every event.
   - Deadlines and start times are points in time, so events have no end time. All-day items are exported as all-day events.
   - One-off times are written in UTC. Repeating series use floating local time, so "10:00 every Monday" stays at 10:00 across daylight-saving changes. Due vs. Starts is kept in an `X-COUNTDOWN-TYPE` property so a later re-import can restore it.

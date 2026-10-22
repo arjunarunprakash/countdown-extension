@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef } from "preact/hooks";
 import { formatItemDate } from "../lib/dates";
 import type { Item, Row, Unit } from "../lib/types";
 import { describeEnd, describeRule } from "../lib/recurrence";
-import { isSelecting, selected, seriesKey, toggleSelected } from "../state/selection";
+import { draftIndex } from "../state/importer";
+import { isSelecting, selected, selectionMode, seriesKey, toggleSelected } from "../state/selection";
 import { series } from "../state/store";
 import { completing, editing } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
@@ -42,9 +43,34 @@ function useCollapse(active: boolean) {
   return ref;
 }
 
+/**
+ * How a row behaves in selection mode. In Export, existing rows are
+ * selectable; in Import, only previewed candidates are (duplicates shown but
+ * disabled), and they carry an "Import" / "Already added" badge.
+ */
+function selectionFor(key: string, candidateId: string, isCandidate: boolean) {
+  const mode = selectionMode.value;
+  const duplicate = isCandidate && draftIndex.value.duplicates.has(candidateId);
+  const selectable = mode === "export" ? !isCandidate : mode === "import" ? isCandidate : false;
+  return {
+    selKey: selectable ? key : undefined,
+    duplicate,
+    badge: isCandidate
+      ? duplicate
+        ? ({ text: "Already added", tone: "muted" } as const)
+        : ({ text: "Import", tone: "accent" } as const)
+      : undefined,
+    rowClass: isCandidate ? (duplicate ? " row--candidate row--duplicate" : " row--candidate") : "",
+    toggle: () => {
+      if (selectable && !duplicate) toggleSelected(key);
+    },
+  };
+}
+
 /** "Weekly on Monday · until 31 December", or null if the item doesn't repeat. */
 function repeatLabel(seriesId: string | undefined): string | null {
-  const s = seriesId ? series.value.find((x) => x.id === seriesId) : undefined;
+  // Saved series, or one still being previewed for import.
+  const s = seriesId ? (series.value.find((x) => x.id === seriesId) ?? draftIndex.value.seriesById.get(seriesId)) : undefined;
   if (!s) return null;
   const end = describeEnd(s.end);
   return `${describeRule(s.rule, new Date(s.start))}${end ? ` · ${end}` : ""}`;
@@ -53,17 +79,19 @@ function repeatLabel(seriesId: string | undefined): string | null {
 function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: number; past: boolean }) {
   const isCompleting = completing.value.has(item.id);
   const ref = useCollapse(isCompleting);
+  const sel = selectionFor(item.id, item.id, draftIndex.value.itemIds.has(item.id));
   return (
-    <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}`}>
-      <SelectCell selKey={item.id} label={item.title} />
+    <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}${sel.rowClass}`}>
+      <SelectCell selKey={sel.selKey} label={item.title} disabled={sel.duplicate} />
       <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} />
       <ItemTile
         item={item}
         past={past}
         meta={!past && repeatLabel(item.seriesId) && <RepeatMeta text={repeatLabel(item.seriesId)!} />}
         selecting={isSelecting.value}
-        selected={selected.value.has(item.id)}
-        onOpen={() => (isSelecting.value ? toggleSelected(item.id) : (editing.value = { kind: "item", id: item.id }))}
+        selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(item.id)}
+        badge={sel.badge}
+        onOpen={() => (isSelecting.value ? sel.toggle() : (editing.value = { kind: "item", id: item.id }))}
       />
     </li>
   );
@@ -75,17 +103,20 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
   const layers = Math.min(more, 2);
   const isCompleting = completing.value.has(head.id);
   const date = formatItemDate(new Date(head.dateTime), head.allDay);
+  const key = seriesKey(seriesId);
+  const sel = selectionFor(key, seriesId, draftIndex.value.seriesIds.has(seriesId));
   return (
-    <li class="row row--stack grid-row" style={{ "--stack-layers": layers }}>
-      <SelectCell selKey={seriesKey(seriesId)} label={`${head.title} (all occurrences)`} />
+    <li class={`row row--stack grid-row${sel.rowClass}`} style={{ "--stack-layers": layers }}>
+      <SelectCell selKey={sel.selKey} label={`${head.title} (all occurrences)`} disabled={sel.duplicate} />
       <CountdownBox item={head} unit={unit} now={now} completing={isCompleting} />
       <div class="stack">
         <ItemTile
           item={head}
           label={`${head.title}, ${repeatLabel(seriesId) ?? "repeating"}. Next ${head.type === "due" ? "due" : "starts"} ${date}. Open series`}
           selecting={isSelecting.value}
-          selected={selected.value.has(seriesKey(seriesId))}
-          onOpen={() => (isSelecting.value ? toggleSelected(seriesKey(seriesId)) : (editing.value = { kind: "series", seriesId }))}
+          selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(key)}
+          badge={sel.badge}
+          onOpen={() => (isSelecting.value ? sel.toggle() : (editing.value = { kind: "series", seriesId }))}
           meta={<RepeatMeta text={repeatLabel(seriesId) ?? `Repeats · ${more} more`} />}
         />
         {layers >= 1 && <div class="stack__layer stack__layer--1" aria-hidden="true" />}

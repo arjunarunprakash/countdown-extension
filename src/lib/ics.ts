@@ -1,5 +1,7 @@
 import ICAL from "ical.js";
-import { occurrences, withinEnd, type RepeatEnd, type Series } from "./recurrence";
+import { occurrences, wallDate, withinEnd, type RepeatEnd, type Series } from "./recurrence";
+import { zonedTimeToInstant } from "./timezone";
+import { buildVtimezone } from "./vtimezone";
 import type { Item } from "./types";
 
 // iCalendar (RFC 5545) export. Import arrives in Phase 5 in this same module.
@@ -8,7 +10,8 @@ import type { Item } from "./types";
 //  - One-off timed items are written in UTC (…Z), an unambiguous instant.
 //  - Repeating series use floating local time (no Z, no TZID): "10:00 every
 //    Monday" stays 10:00 across daylight-saving changes in whichever zone
-//    the calendar is in. (A TZID would require a generated VTIMEZONE.)
+//    the calendar is in. A series that follows another zone (imported, e.g.
+//    9:30 IST) is written with TZID=<IANA name> plus a generated VTIMEZONE.
 //  - All-day items use VALUE=DATE.
 //  - Deadlines and start times are points in time, so events have no DTEND
 //    (RFC 5545 §3.6.1: the event ends when it starts).
@@ -54,7 +57,8 @@ export function occurrenceIndex(series: Series, item: Item): number {
  */
 export function recurFor(series: Series, fromIndex = 0, allDay = series.allDay ?? false): ICAL.Recur {
   const { rule, end } = series;
-  const start = new Date(series.start);
+  // Day and month checks happen on the series' own clock.
+  const start = wallDate(new Date(series.start), series.timeZone);
   const data: Record<string, unknown> = { freq: rule.freq };
   if (rule.interval > 1) data.interval = rule.interval;
   if (rule.freq === "WEEKLY" && rule.weekdays?.length) {
@@ -66,17 +70,20 @@ export function recurFor(series: Series, fromIndex = 0, allDay = series.allDay ?
     data.bymonth = [2];
     data.bymonthday = [-1];
   }
-  applyEnd(data, end, fromIndex, allDay);
+  applyEnd(data, end, fromIndex, allDay, series.timeZone);
   return ICAL.Recur.fromData(data);
 }
 
-function applyEnd(data: Record<string, unknown>, end: RepeatEnd, fromIndex: number, allDay: boolean) {
+function applyEnd(data: Record<string, unknown>, end: RepeatEnd, fromIndex: number, allDay: boolean, timeZone?: string) {
   if (end.type === "count") data.count = Math.max(1, end.count - fromIndex);
   if (end.type === "until") {
     const [y, m, d] = end.date.split("-").map(Number) as [number, number, number];
-    data.until = allDay
-      ? ICAL.Time.fromData({ year: y, month: m, day: d, isDate: true })
-      : ICAL.Time.fromData({ year: y, month: m, day: d, hour: 23, minute: 59, second: 59 });
+    if (allDay) data.until = ICAL.Time.fromData({ year: y, month: m, day: d, isDate: true });
+    else if (timeZone) {
+      // With a TZID'd DTSTART, UNTIL must be in UTC (RFC 5545 §3.3.10).
+      const instant = zonedTimeToInstant({ year: y, month: m, day: d, hour: 23, minute: 59, second: 59 }, timeZone)!;
+      data.until = ICAL.Time.fromJSDate(new Date(instant), true);
+    } else data.until = ICAL.Time.fromData({ year: y, month: m, day: d, hour: 23, minute: 59, second: 59 });
   }
 }
 
@@ -104,9 +111,19 @@ function itemEvent(item: Item, now: Date) {
  * last day of a shorter month but the exported rule skips that month.
  */
 function inRfcSet(series: Series, date: Date): boolean {
-  const day = new Date(series.start).getDate();
-  if (series.rule.freq === "MONTHLY" && (day === 29 || day === 30)) return date.getDate() === day;
+  const day = wallDate(new Date(series.start), series.timeZone).getDate();
+  if (series.rule.freq === "MONTHLY" && (day === 29 || day === 30)) {
+    return wallDate(date, series.timeZone).getDate() === day;
+  }
   return true;
+}
+
+/** Sets DTSTART / adds EXDATE for a series time: floating, or TZID'd for a zoned series. */
+function seriesTime(ev: ICAL.Component, name: "dtstart" | "exdate", series: Series, date: Date, allDay: boolean) {
+  const zone = allDay ? undefined : series.timeZone;
+  const value = floating(wallDate(date, zone), allDay);
+  const prop = name === "dtstart" ? ev.updatePropertyWithValue(name, value) : ev.addPropertyWithValue(name, value);
+  if (zone) prop.setParameter("tzid", zone);
 }
 
 /**
@@ -161,10 +178,10 @@ function seriesEvents(series: Series, upcoming: Item[], allItems: readonly Item[
   }
 
   if (dtIndex >= 0 && dtDate) {
-    const ev = baseEvent(`${series.id}@countdown`, series.template.title, series.template.type, series.template.notes, now);
-    ev.updatePropertyWithValue("dtstart", floating(dtDate, allDay));
+    const ev = baseEvent(series.uid ?? `${series.id}@countdown`, series.template.title, series.template.type, series.template.notes, now);
+    seriesTime(ev, "dtstart", series, dtDate, allDay);
     ev.updatePropertyWithValue("rrule", recurFor(series, dtIndex, allDay));
-    for (const d of exdates) ev.addPropertyWithValue("exdate", floating(d, allDay));
+    for (const d of exdates) seriesTime(ev, "exdate", series, d, allDay);
     out.unshift(ev);
   }
   return out;
@@ -177,9 +194,9 @@ function occurrenceEvent(series: Series, item: Item, index: number, now: Date) {
   return ev;
 }
 
-const withinEndOf = (series: Series, date: Date, index: number) => withinEnd(date, index, series.end);
+const withinEndOf = (series: Series, date: Date, index: number) => withinEnd(date, index, series.end, series.timeZone);
 
-const occurrencesFrom = (series: Series) => occurrences(new Date(series.start), series.rule);
+const occurrencesFrom = (series: Series) => occurrences(new Date(series.start), series.rule, series.timeZone);
 
 /** Builds a complete VCALENDAR document. Lines end in CRLF and fold at 75 octets. */
 export function buildIcs(entries: readonly ExportEntry[], allItems: readonly Item[], now = new Date()): string {
@@ -188,6 +205,15 @@ export function buildIcs(entries: readonly ExportEntry[], allItems: readonly Ite
   cal.updatePropertyWithValue("version", "2.0");
   cal.updatePropertyWithValue("calscale", "GREGORIAN");
   cal.updatePropertyWithValue("method", "PUBLISH");
+  // One VTIMEZONE per zone used by a zoned series.
+  const zones = new Map<string, Date>();
+  for (const e of entries) {
+    if (e.kind === "series" && e.series.timeZone && !e.series.allDay && !zones.has(e.series.timeZone)) {
+      zones.set(e.series.timeZone, new Date(e.upcoming[0]?.dateTime ?? e.series.start));
+    }
+  }
+  for (const [zone, from] of zones) cal.addSubcomponent(buildVtimezone(zone, from));
+
   for (const entry of entries) {
     const events =
       entry.kind === "item" ? [itemEvent(entry.item, now)] : seriesEvents(entry.series, entry.upcoming, allItems, now);

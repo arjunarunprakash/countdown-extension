@@ -1,5 +1,6 @@
 import type { ComponentChildren } from "preact";
-import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
+import { useSheetHeight } from "../hooks/useSheetHeight";
 import { downloadFile } from "../lib/download";
 import { GCAL_IMPORT_URL, googleCalendarUrl } from "../lib/gcal";
 import { buildIcs, exportFileName, type ExportEntry } from "../lib/ics";
@@ -24,20 +25,7 @@ export function ExportSheet({ entries, state }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const n = entries.length;
 
-  // Reserve space under the list (and lift the toast) by the sheet's height.
-  useLayoutEffect(() => {
-    const el = ref.current;
-    const app = el?.closest<HTMLElement>(".app");
-    if (!el || !app) return;
-    const measure = () => app.style.setProperty("--sheet-h", `${el.offsetHeight}px`);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      app.style.removeProperty("--sheet-h");
-    };
-  }, []);
+  useSheetHeight(ref);
 
   const download = () => {
     const name = exportFileName(entries);

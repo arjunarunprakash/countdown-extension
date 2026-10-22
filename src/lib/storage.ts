@@ -1,4 +1,5 @@
 import type { RepeatEnd, RepeatRule, Series } from "./recurrence";
+import { isValidTimeZone } from "./timezone";
 import type { CompletionRecord, Item, Unit } from "./types";
 
 export const SCHEMA_VERSION = 1;
@@ -176,7 +177,9 @@ export function isSeries(v: unknown): v is Series {
     (t.type === "due" || t.type === "starts") &&
     isOptionalString(t.notes) &&
     Number.isInteger(o.nextIndex) &&
-    (o.nextIndex as number) >= 0
+    (o.nextIndex as number) >= 0 &&
+    isOptionalString(o.uid) &&
+    (o.timeZone === undefined || (isString(o.timeZone) && isValidTimeZone(o.timeZone)))
   );
 }
 

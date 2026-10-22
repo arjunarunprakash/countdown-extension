@@ -1,5 +1,6 @@
 import { toLocalISO } from "./dates";
 import { daysInMonth } from "./parse";
+import { instantToWallTime, zonedTimeToInstant } from "./timezone";
 import type { Item, ItemType } from "./types";
 
 // Repeat rules are a subset of iCalendar RRULE (FREQ, INTERVAL, BYDAY,
@@ -34,6 +35,13 @@ export interface Series {
   template: { title: string; type: ItemType; notes?: string };
   /** Index of the next occurrence to generate. */
   nextIndex: number;
+  /** iCalendar UID when imported; kept for duplicate detection and export. */
+  uid?: string;
+  /**
+   * IANA zone whose wall clock the series follows, when imported from a
+   * calendar in another zone (e.g. a 9:30 IST meeting). Absent: local time.
+   */
+  timeZone?: string;
 }
 
 /** Occurrences kept generated ahead of now for each open-ended series. */
@@ -112,30 +120,47 @@ export function describeEnd(end: RepeatEnd): string {
 
 // ── Occurrence generation ─────────────────────────────────────
 
-/** Same day-of-month in a month `months` away, clamped to that month's last day. */
-function clampedMonth(y: number, m: number, d: number, months: number, h: number, mi: number): Date {
-  const first = new Date(y, m + months, 1);
-  const day = Math.min(d, daysInMonth(first.getFullYear(), first.getMonth()));
-  return new Date(first.getFullYear(), first.getMonth(), day, h, mi);
-}
-
 /**
  * Yields occurrence dates in order, starting with `start` itself.
- * Wall-clock time is preserved across DST changes. Monthly/yearly dates
- * past the end of a shorter month land on its last day.
+ * Wall-clock time is preserved across DST changes — in `timeZone` when
+ * given, otherwise in the local zone. Monthly/yearly dates past the end of a
+ * shorter month land on its last day.
  */
-export function* occurrences(start: Date, rule: RepeatRule): Generator<Date> {
-  const [y, m, d, h, mi] = [start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes()];
+export function* occurrences(start: Date, rule: RepeatRule, timeZone?: string): Generator<Date> {
+  const w = timeZone ? instantToWallTime(start.getTime(), timeZone) : null;
+  const zone = w ? timeZone : undefined;
+  const [y, m, d, h, mi] = w
+    ? [w.year, w.month - 1, w.day, w.hour, w.minute]
+    : [start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes()];
+
+  // Calendar arithmetic happens on wall dates (normalized via UTC), then the
+  // wall time is converted to an instant in the series' zone.
+  const at = (yy: number, mm: number, dd: number): Date => {
+    if (!zone) return new Date(yy, mm, dd, h, mi);
+    const n = new Date(Date.UTC(yy, mm, dd));
+    const instant = zonedTimeToInstant(
+      { year: n.getUTCFullYear(), month: n.getUTCMonth() + 1, day: n.getUTCDate(), hour: h, minute: mi, second: 0 },
+      zone,
+    );
+    return new Date(instant!);
+  };
+  const weekday = (yy: number, mm: number, dd: number) => new Date(Date.UTC(yy, mm, dd)).getUTCDay();
+  const clampedMonth = (months: number): Date => {
+    const first = new Date(Date.UTC(y, m + months, 1));
+    const fy = first.getUTCFullYear();
+    const fm = first.getUTCMonth();
+    return at(fy, fm, Math.min(d, daysInMonth(fy, fm)));
+  };
+
   const n = Math.max(1, Math.floor(rule.interval));
   yield new Date(start);
 
   if (rule.freq === "WEEKLY" && rule.weekdays?.length) {
     const days = new Set(rule.weekdays);
-    const weekStart = d - start.getDay(); // Sunday of the start week
+    const weekStart = d - weekday(y, m, d); // Sunday of the start week
     for (let offset = 1; offset < 366 * 50; offset++) {
-      const date = new Date(y, m, d + offset, h, mi);
       const week = Math.floor((d + offset - weekStart) / 7);
-      if (week % n === 0 && days.has(date.getDay())) yield date;
+      if (week % n === 0 && days.has(weekday(y, m, d + offset))) yield at(y, m, d + offset);
     }
     return;
   }
@@ -143,35 +168,42 @@ export function* occurrences(start: Date, rule: RepeatRule): Generator<Date> {
   for (let k = 1; k < 100_000; k++) {
     switch (rule.freq) {
       case "DAILY":
-        yield new Date(y, m, d + k * n, h, mi);
+        yield at(y, m, d + k * n);
         break;
       case "WEEKLY":
-        yield new Date(y, m, d + 7 * k * n, h, mi);
+        yield at(y, m, d + 7 * k * n);
         break;
       case "MONTHLY":
-        yield clampedMonth(y, m, d, k * n, h, mi);
+        yield clampedMonth(k * n);
         break;
       case "YEARLY":
-        yield clampedMonth(y, m, d, 12 * k * n, h, mi);
+        yield clampedMonth(12 * k * n);
         break;
     }
   }
 }
 
-const ymd = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const pad = (v: number) => String(v).padStart(2, "0");
 
-export function withinEnd(date: Date, index: number, end: RepeatEnd): boolean {
+/** YYYY-MM-DD of a date, in `timeZone` when given, otherwise local. */
+export function wallYmd(date: Date, timeZone?: string): string {
+  const w = timeZone ? instantToWallTime(date.getTime(), timeZone) : null;
+  return w
+    ? `${w.year}-${pad(w.month)}-${pad(w.day)}`
+    : `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function withinEnd(date: Date, index: number, end: RepeatEnd, timeZone?: string): boolean {
   if (end.type === "count") return index < end.count;
-  if (end.type === "until") return ymd(date) <= end.date;
+  if (end.type === "until") return wallYmd(date, timeZone) <= end.date;
   return true;
 }
 
 /** The occurrence at `index`, or null if the series has ended before it. */
 export function occurrenceAt(series: Series, index: number): Date | null {
   let i = 0;
-  for (const date of occurrences(new Date(series.start), series.rule)) {
-    if (!withinEnd(date, i, series.end)) return null;
+  for (const date of occurrences(new Date(series.start), series.rule, series.timeZone)) {
+    if (!withinEnd(date, i, series.end, series.timeZone)) return null;
     if (i === index) return date;
     i++;
   }
@@ -201,10 +233,10 @@ export function topUp(
 
   // Walk the generator once instead of calling occurrenceAt per index.
   let i = 0;
-  const gen = occurrences(new Date(series.start), series.rule);
+  const gen = occurrences(new Date(series.start), series.rule, series.timeZone);
   for (const date of gen) {
     if (upcoming >= WINDOW && i >= next) break;
-    if (!withinEnd(date, i, series.end)) {
+    if (!withinEnd(date, i, series.end, series.timeZone)) {
       ended = true;
       break;
     }
@@ -241,4 +273,14 @@ export function topUp(
 /** True once a series has generated its last occurrence. */
 export function hasEnded(series: Series): boolean {
   return occurrenceAt(series, series.nextIndex) === null;
+}
+
+/**
+ * A Date whose *local* fields equal the wall-clock fields of `date` in
+ * `timeZone` (or `date` itself when no zone). For calendar checks such as
+ * day-of-month or weekday on the series' own clock.
+ */
+export function wallDate(date: Date, timeZone?: string): Date {
+  const w = timeZone ? instantToWallTime(date.getTime(), timeZone) : null;
+  return w ? new Date(w.year, w.month - 1, w.day, w.hour, w.minute, w.second) : date;
 }

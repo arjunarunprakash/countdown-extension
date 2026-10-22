@@ -13,9 +13,11 @@ interface Props {
   /** In selection mode the tile toggles its checkbox; the checkbox is the accessible control. */
   selecting?: boolean;
   selected?: boolean;
+  /** Small label after the type tag, e.g. "Import" or "Already added". */
+  badge?: { text: string; tone: "accent" | "muted" };
 }
 
-export function ItemTile({ item, past = false, meta, label, onOpen, selecting = false, selected = false }: Props) {
+export function ItemTile({ item, past = false, meta, label, onOpen, selecting = false, selected = false, badge }: Props) {
   const date = formatItemDate(new Date(item.dateTime), item.allDay);
   return (
     <button
@@ -35,7 +37,13 @@ export function ItemTile({ item, past = false, meta, label, onOpen, selecting = 
       </span>
       <span class="tile__date">{date}</span>
       {item.notes && <span class="tile__notes">{item.notes}</span>}
-      {meta && <span class="tile__meta">{meta}</span>}
+      {(meta || badge) && (
+        <span class="tile__meta">
+          {/* The badge sits on the meta line so long titles keep their room. */}
+          {badge && <span class={`badge badge--${badge.tone}`}>{badge.text}</span>}
+          {meta}
+        </span>
+      )}
     </button>
   );
 }

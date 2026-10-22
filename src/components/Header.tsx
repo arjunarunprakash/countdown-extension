@@ -3,7 +3,6 @@ import type { Unit } from "../lib/types";
 import { enterSelection, exitSelection, isSelecting, selected, selectionMode, setSelected } from "../state/selection";
 import { prefs, setPrefs } from "../state/store";
 import { cycleTheme, THEME_LABEL } from "../state/theme";
-import { openImport } from "../state/ui";
 import { Checkbox } from "./Checkbox";
 import { IconButton } from "./IconButton";
 
@@ -51,12 +50,20 @@ export function Header({ unit, onNew, selectable }: Props) {
       </span>
       <div class="header__actions">
         <IconButton icon="plus" label="New item" onClick={onNew} disabled={selecting} />
-        <IconButton icon="import" label="Import" onClick={openImport} disabled={selecting} />
+        <IconButton
+          id="import-button"
+          icon="import"
+          label="Import"
+          pressed={selectionMode.value === "import"}
+          disabled={selectionMode.value === "export"}
+          onClick={() => (selectionMode.value === "import" ? exitSelection() : enterSelection("import"))}
+        />
         <IconButton
           id="export-button"
           icon="export"
           label="Export"
           pressed={selectionMode.value === "export"}
+          disabled={selectionMode.value === "import"}
           onClick={() => (selectionMode.value === "export" ? exitSelection() : enterSelection("export"))}
         />
         <IconButton

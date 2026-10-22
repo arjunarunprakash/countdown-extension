@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { toLocalISO } from "../src/lib/dates";
-import { presetRule, WINDOW } from "../src/lib/recurrence";
+import { presetRule, WINDOW, type Series } from "../src/lib/recurrence";
 import { buildRows } from "../src/lib/rows";
 import type { StorageBackend } from "../src/lib/storage";
 import type { Item } from "../src/lib/types";
 import { selectableKeys, selectionEntries, seriesKey, splitKeys } from "../src/state/selection";
-import { addItem, ensureOccurrences, initStore, items, makeRepeating, removeMany, series } from "../src/state/store";
+import { addImported, addItem, ensureOccurrences, initStore, items, makeRepeating, removeMany, series } from "../src/state/store";
 import { toast } from "../src/state/toast";
 
 const now = new Date(2026, 9, 22, 12);
@@ -74,3 +74,29 @@ describe("removeMany", () => {
     expect(toast.value?.message).toBe("Repeating item removed");
   });
 });
+
+describe("addImported", () => {
+  it("adds items and series together; undo also removes occurrences generated since", () => {
+    const before = items.value.length;
+    const imported: Series = {
+      id: "imp",
+      epoch: 0,
+      start: toLocalISO(new Date(2026, 9, 26, 9)),
+      rule: presetRule("daily"),
+      end: { type: "never" },
+      template: { title: "Standup", type: "starts" },
+      nextIndex: 1,
+    };
+    const first = item("imp-0", 4, { title: "Standup", type: "starts", source: "import", seriesId: "imp", dateTime: imported.start });
+    addImported([item("one", 6, { source: "import" }), first], [imported], 2);
+    expect(toast.value?.message).toBe("Added 2 items");
+
+    ensureOccurrences(t); // the app tops up the new series
+    expect(items.value.filter((i) => i.seriesId === "imp").length).toBe(WINDOW);
+
+    toast.value!.action!.run();
+    expect(items.value).toHaveLength(before);
+    expect(series.value.some((s) => s.id === "imp")).toBe(false);
+  });
+});
+

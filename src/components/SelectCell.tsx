@@ -5,6 +5,8 @@ interface Props {
   /** Selection key; omit for rows that can't be selected (keeps the grid column). */
   selKey?: string;
   label?: string;
+  /** Shown but not selectable (e.g. an import duplicate). */
+  disabled?: boolean;
 }
 
 /**
@@ -12,12 +14,13 @@ interface Props {
  * mode; in selection mode the column widens and the checkbox slides in.
  * Inert while hidden so it can't be focused.
  */
-export function SelectCell({ selKey, label = "" }: Props) {
+export function SelectCell({ selKey, label = "", disabled = false }: Props) {
   return (
     <div class="select-cell" inert={!isSelecting.value}>
       {selKey && (
         <Checkbox
-          checked={selected.value.has(selKey)}
+          checked={!disabled && selected.value.has(selKey)}
+          disabled={disabled}
           onChange={(on) => toggleSelected(selKey, on)}
           label={`Select ${label}`}
           hideLabel

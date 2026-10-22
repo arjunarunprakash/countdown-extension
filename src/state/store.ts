@@ -225,6 +225,31 @@ export function removeMany(itemIds: Iterable<string>, seriesIds: Iterable<string
 }
 
 /**
+ * Adds imported items and series as one change. Undo removes them again,
+ * including occurrences generated for the imported series since.
+ */
+export function addImported(newItems: Item[], newSeries: Series[], count: number) {
+  if (newItems.length === 0 && newSeries.length === 0) return;
+  const ids = new Set(newItems.map((i) => i.id));
+  const sids = new Set(newSeries.map((s) => s.id));
+  batch(() => {
+    setItems([...items.value, ...newItems]);
+    if (newSeries.length) setSeries([...series.value, ...newSeries]);
+  });
+  showToast({
+    message: count === 1 ? "Added 1 item" : `Added ${count} items`,
+    action: {
+      label: "Undo",
+      run: () =>
+        batch(() => {
+          setItems(items.value.filter((i) => !ids.has(i.id) && !(i.seriesId && sids.has(i.seriesId) && !i.completedAt)));
+          if (sids.size) setSeries(series.value.filter((s) => !sids.has(s.id)));
+        }),
+    },
+  });
+}
+
+/**
  * Generates upcoming occurrences for every series that is running low.
  * Safe to call often: it only writes when something was added.
  */
