@@ -19,8 +19,7 @@ type Note = { text: string; link?: { href: string; label: string } };
 
 /**
  * Bottom sheet for selection mode's Export: Google Calendar, .ics download,
- * remove, move to a category, and a placeholder for share links (Phase 2 of
- * the product).
+ * move to a category, and remove.
  */
 export function ExportSheet({ entries, state }: Props) {
   const [note, setNote] = useState<Note | null>(null);
@@ -96,9 +95,8 @@ export function ExportSheet({ entries, state }: Props) {
           onClick={addToGoogle}
         />
         <SheetAction icon="import" label="Download .ics" hint="Apple, Outlook & more" disabled={n === 0} onClick={downloadIcs} />
-        <SheetAction icon="link" label="Share link" hint="Coming soon" disabled soon />
-        <SheetAction icon="trash" label="Remove" hint={n > 0 ? `${n} item${n === 1 ? "" : "s"}` : "Selected items"} danger disabled={n === 0} onClick={remove} />
         {categories.value.length > 0 && <MoveToCategory entries={entries} />}
+        <SheetAction icon="trash" label="Remove" hint={n > 0 ? `${n} item${n === 1 ? "" : "s"}` : "Selected items"} danger disabled={n === 0} onClick={remove} />
       </div>
 
       <div class="sheet__footer">
@@ -128,7 +126,7 @@ function moveTargets(entries: ExportEntry[], now = Date.now()): CategoryTarget[]
   return targets;
 }
 
-/** Full-width action that opens a menu of categories (and Other). */
+/** Action that opens a menu of categories (and Other). */
 function MoveToCategory({ entries }: { entries: ExportEntry[] }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -175,7 +173,7 @@ function MoveToCategory({ entries }: { entries: ExportEntry[] }) {
       <button
         ref={buttonRef}
         type="button"
-        class="sheet-action sheet-action--wide"
+        class="sheet-action sheet-action--menu"
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={n === 0}
@@ -214,24 +212,19 @@ interface ActionProps {
   onClick?: () => void;
   disabled?: boolean;
   danger?: boolean;
-  /** Placeholder for a feature that isn't built yet. */
-  soon?: boolean;
 }
 
-function SheetAction({ icon, label, hint, onClick, disabled, danger, soon }: ActionProps) {
+function SheetAction({ icon, label, hint, onClick, disabled, danger }: ActionProps) {
   return (
     <button
       type="button"
-      class={`sheet-action${danger ? " sheet-action--danger" : ""}${soon ? " sheet-action--soon" : ""}`}
+      class={`sheet-action${danger ? " sheet-action--danger" : ""}`}
       disabled={disabled}
       onClick={onClick}
     >
       <Icon name={icon} />
       <span class="sheet-action__text">
-        <span class="sheet-action__label">
-          {label}
-          {soon && <span class="badge">Soon</span>}
-        </span>
+        <span class="sheet-action__label">{label}</span>
         <span class="sheet-action__hint">{hint}</span>
       </span>
     </button>

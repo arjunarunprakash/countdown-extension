@@ -124,7 +124,7 @@ Accessibility is checked with axe-core against every main screen in light and da
 
 ## Known limitations
 
-- Share links (Phase 2 of the product) need a backend and aren't built yet; the Export sheet shows a placeholder.
+- Share links (Phase 2 of the product) need a backend and aren't built yet. The Export sheet's placeholder for them was removed before publishing, since store reviewers can flag features that don't work.
 - Notifications and account sync are out of scope.
 - Calendars are imported once; there is no automatic refresh of a subscribed link.
 - Exotic recurrence rules ("second Tuesday", hourly) import as a fixed stack of their next 6 occurrences.
@@ -168,8 +168,8 @@ Accessibility is checked with axe-core against every main screen in light and da
   - Upcoming items and overdue items can be selected. A repeating stack is selected as a whole series. Completed items can't be selected.
   - **Google Calendar:** for one selected entry, opens Google's prefilled "new event" page. For several, it downloads an `.ics` file and links to Google's import page, because Google's link can only create one event.
   - **Download .ics:** works with Apple Calendar, Outlook and any RFC 5545 calendar.
+  - **Move to category** (once categories exist): moves every selected item and stack, with a single Undo.
   - **Remove:** removes the selected items, and whole series, with a single Undo.
-  - **Share link:** a disabled "Soon" placeholder; it needs a backend.
 - **Importing.** Import opens selection mode with an import sheet. Drop an `.ics` file anywhere on the panel, use **browse**, or paste a calendar link (`webcal://` or `https://`; Google's "Secret address in iCal format", Apple's public calendar link, Outlook's published `.ics`).
   - Countdown asks for permission to read a link's site only when you fetch it, covering that host and its parent domain's subdomains, since calendar servers often redirect, e.g. to `pNN-caldav.icloud.com`. Plain `http://` links are upgraded to `https://`.
   - Upcoming events appear in the list, pre-checked, with an **Import** badge. Past events are hidden and counted. **Add selected** imports them with one Undo; Cancel or Escape discards the preview.

@@ -2,7 +2,7 @@
 
 > Last Updated: 2026-10-22
 
-Everything the Chrome Developer Dashboard asks for, ready to copy. Fields marked **TODO** need a decision from the publisher before submitting.
+Everything the Chrome Developer Dashboard asks for, ready to copy.
 
 ## Store Listing
 
@@ -105,19 +105,22 @@ The items, categories and settings the user creates are stored only on their dev
 
 ## Privacy Policy
 
-**Privacy Policy URL** — **TODO:** the policy is in [PRIVACY.md](PRIVACY.md), but it needs a public URL. The GitHub repository is private, so its file links won't work for reviewers. Options: make the repository public, or publish PRIVACY.md as a public GitHub Gist or GitHub Pages site.
+**Privacy Policy URL**
+https://github.com/arjunarunprakash/countdown-extension/blob/main/PRIVACY.md
+
+The source is [PRIVACY.md](PRIVACY.md). Keep it consistent with the Privacy & Data Use answers above; open the URL in a private window before submitting to confirm it loads.
 
 ## Distribution
 
-**Visibility**: **TODO** (Public / Unlisted / Private)
+**Visibility**: Public
 **Regions**: All regions
 
 ## Developer Info
 
-**Publisher Name** — **TODO**
-**Contact Email** — **TODO** (shown publicly; must be monitored)
-**Support URL / Email** — **TODO** (for example the repository's Issues page, if it's public)
-**Homepage URL** — optional
+**Publisher Name** — set on your Chrome Web Store developer account (one-time US$5 registration)
+**Contact Email** — mermenial@gmail.com (shown publicly; Google also sends policy notices here, so keep it monitored)
+**Support URL** — https://github.com/arjunarunprakash/countdown-extension/issues
+**Homepage URL** — https://github.com/arjunarunprakash/countdown-extension
 
 ## Version History
 
@@ -131,7 +134,6 @@ The items, categories and settings the user creates are stored only on their dev
 `npm run package` builds and writes `release/countdown-v<version>.zip` with `manifest.json` at its root. It refuses to package when manifest.json and package.json versions differ, or when the build contains source maps or the dev-only audit script. Bump both versions before every upload; the store rejects a version that isn't higher than the published one.
 
 ### Known Issues / Limitations
-- The Export sheet shows a "Share link — Coming soon" placeholder. Reviewers can flag listed-but-missing features, so it isn't mentioned in the listing.
 - Calendar links are imported once; there's no automatic refresh.
 
 ### Rejection History

@@ -36,4 +36,4 @@ If these practices change, this policy will be updated and the date above change
 
 ## Contact
 
-Questions about privacy: **TODO: contact email**
+Questions about privacy: mermenial@gmail.com

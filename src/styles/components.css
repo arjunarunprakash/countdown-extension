@@ -1671,15 +1671,17 @@ button.tile:active {
 }
 
 /* Spans both columns; the chevron sits at the far right. */
-.sheet-action--wide {
+/* An odd action out (Remove, when there are no categories) spans the row. */
+.sheet-action:last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
 
-.sheet-action--wide .sheet-action__text {
+/* Move to category: the chevron sits at the far right. */
+.sheet-action--menu .sheet-action__text {
   flex: 1;
 }
 
-.sheet-action--wide > .icon:last-child {
+.sheet-action--menu > .icon:last-child {
   width: 16px;
   height: 16px;
   color: var(--color-text-subtle);
