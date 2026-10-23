@@ -1,11 +1,27 @@
 import { signal } from "@preact/signals";
-import type { Item } from "../lib/types";
+import { nextUnit } from "../lib/countdown";
+import type { Item, Unit } from "../lib/types";
 import { completeItem } from "./store";
 
 /** The single item (or series) currently expanded for editing. */
 export type Editing = { kind: "item"; id: string } | { kind: "series"; seriesId: string } | { kind: "new"; draft: Item };
 
 export const editing = signal<Editing | null>(null);
+
+/**
+ * Per-item countdown units chosen by clicking a box (item id → unit). For
+ * quick checks, so they last for this session; the header unit is the default.
+ */
+export const unitOverrides = signal<ReadonlyMap<string, Unit>>(new Map());
+
+/** The next unit for one box; returning to the header's unit clears the override. */
+export function cycleItemUnit(id: string, globalUnit: Unit) {
+  const next = nextUnit(unitOverrides.value.get(id) ?? globalUnit);
+  const map = new Map(unitOverrides.value);
+  if (next === globalUnit) map.delete(id);
+  else map.set(id, next);
+  unitOverrides.value = map;
+}
 
 /** Items playing the completion animation; they finish completing when it ends. */
 export const completing = signal<ReadonlySet<string>>(new Set());

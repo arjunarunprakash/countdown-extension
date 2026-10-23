@@ -85,7 +85,7 @@ function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: num
   return (
     <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}${sel.rowClass}`}>
       <SelectCell selKey={sel.selKey} label={item.title} disabled={sel.duplicate} />
-      <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} />
+      <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} interactive />
       <ItemTile
         item={item}
         past={past}
@@ -109,7 +109,7 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
   return (
     <li class={`row row--stack grid-row${sel.rowClass}`} style={{ "--stack-layers": layers }}>
       <SelectCell selKey={sel.selKey} label={`${head.title} (all occurrences)`} disabled={sel.duplicate} />
-      <CountdownBox item={head} unit={unit} now={now} completing={isCompleting} />
+      <CountdownBox item={head} unit={unit} now={now} completing={isCompleting} interactive />
       <div class="stack">
         <ItemTile
           item={head}

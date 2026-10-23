@@ -14,6 +14,7 @@ import {
   type Prefs,
   type StorageBackend,
 } from "../lib/storage";
+import type { TimeParts } from "../lib/parse";
 import type { CompletionRecord, Item } from "../lib/types";
 import { showToast } from "./toast";
 
@@ -243,6 +244,37 @@ export function changeSeriesRule(
       );
       setSeries(series.value.filter((x) => x.id !== seriesId));
     }
+  });
+}
+
+/**
+ * Moves every upcoming, uncompleted occurrence of a series to one time of day
+ * (null = all-day), including occurrences whose time was changed on their own,
+ * and updates the series so future occurrences follow.
+ */
+export function setSeriesTime(seriesId: string, time: TimeParts | null, now = new Date()) {
+  const s = series.value.find((x) => x.id === seriesId);
+  const t = now.getTime();
+  const stamp = toLocalISO(now);
+  const at = (iso: string) => {
+    const d = new Date(iso);
+    return toLocalISO(new Date(d.getFullYear(), d.getMonth(), d.getDate(), time?.hour ?? 0, time?.minute ?? 0));
+  };
+  const withTime = <T extends { allDay?: boolean }>(x: T): T => {
+    const next = { ...x };
+    if (time) delete next.allDay;
+    else next.allDay = true;
+    return next;
+  };
+  batch(() => {
+    setItems(
+      items.value.map((i) =>
+        i.seriesId === seriesId && !i.completedAt && Date.parse(i.dateTime) > t
+          ? withTime({ ...i, dateTime: at(i.dateTime), updatedAt: stamp })
+          : i,
+      ),
+    );
+    if (s) setSeries(series.value.map((x) => (x.id === seriesId ? withTime({ ...x, start: at(x.start) }) : x)));
   });
 }
 

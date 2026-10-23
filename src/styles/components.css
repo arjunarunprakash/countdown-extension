@@ -1151,10 +1151,10 @@ button.tile:active {
   grid-column: 2 / -1;
 }
 
-.occurrence__date {
+.occurrence__title {
   font-size: var(--text-sm);
   line-height: var(--leading-sm);
-  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1169,7 +1169,7 @@ button.tile:active {
   white-space: nowrap;
 }
 
-.occurrence--completing .occurrence__date {
+.occurrence--completing .occurrence__title {
   color: var(--color-text-subtle);
   text-decoration: line-through;
   text-decoration-color: var(--color-accent);
@@ -2105,6 +2105,115 @@ button.tile:active {
   .row--completing,
   .occurrence--completing,
   .tooltip {
+    animation: none;
+  }
+}
+
+/* ── Stack time (one time for every occurrence) ─────────────── */
+.stack-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stack-time .time-field {
+  max-width: 160px;
+}
+
+.stack-time .field-hint {
+  margin-top: 0;
+}
+
+/* ── Occurrence preview (new repeating items) ──────────────── */
+.occurrence-preview {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.occurrence-preview__head {
+  padding: var(--space-0-5) var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.occurrence-preview__list {
+  max-height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.occurrence-preview__list:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Title on its own line so it gets the full width; date underneath. */
+.occurrence-preview__row {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-0-5) var(--space-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.occurrence-preview__row + .occurrence-preview__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.occurrence-preview__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occurrence-preview__date {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Per-item units (click a countdown box) ────────────────── */
+button.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+button.countdown:hover {
+  background: linear-gradient(var(--color-accent-subtle-hover), var(--color-accent-subtle-hover)), var(--glass-fill-hover);
+}
+
+button.countdown:active {
+  transform: scale(0.97);
+}
+
+.countdown__unit {
+  margin-top: -2px;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  animation: value-in var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown__unit {
     animation: none;
   }
 }

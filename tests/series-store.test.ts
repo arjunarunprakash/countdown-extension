@@ -15,6 +15,7 @@ import {
   removeSeries,
   saveSeries,
   series,
+  setSeriesTime,
 } from "../src/state/store";
 import { toast } from "../src/state/toast";
 
@@ -258,6 +259,34 @@ describe("repeating items in the store", () => {
       "Chapter 3 (part 2) Homework",
       "Ch. 4",
     ]);
+  });
+
+  it("sets one time for every upcoming occurrence, including ones changed on their own", () => {
+    addItem(makeRepeating(first(), presetRule("weekly"), { type: "never" }));
+    ensureOccurrences(t);
+    const id = series.value[0]!.id;
+    // One occurrence moved to 23:59 on its own.
+    const odd = upcomingOf(id)[1]!;
+    const d = new Date(odd.dateTime);
+    items.value = items.value.map((i) => (i.id === odd.id ? { ...i, dateTime: toLocalISO(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59)) } : i));
+
+    setSeriesTime(id, { hour: 23, minute: 59 }, now);
+    const times = upcomingOf(id).map((i) => new Date(i.dateTime)).map((x) => `${x.getHours()}:${x.getMinutes()}`);
+    expect(new Set(times)).toEqual(new Set(["23:59"]));
+    // Dates are unchanged; future occurrences follow the new time.
+    expect(new Date(series.value[0]!.start).getHours()).toBe(23);
+    items.value = items.value.filter((i) => i.id !== upcomingOf(id).at(-1)!.id);
+    ensureOccurrences(t);
+    expect(new Date(upcomingOf(id).at(-1)!.dateTime).getHours()).toBe(23);
+  });
+
+  it("can make a whole series all-day", () => {
+    addItem(makeRepeating(first(), presetRule("weekly"), { type: "count", count: 3 }));
+    ensureOccurrences(t);
+    const id = series.value[0]!.id;
+    setSeriesTime(id, null, now);
+    expect(upcomingOf(id).every((i) => i.allDay && new Date(i.dateTime).getHours() === 0)).toBe(true);
+    expect(series.value[0]!.allDay).toBe(true);
   });
 });
 

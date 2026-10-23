@@ -7,6 +7,10 @@ interface Props {
   /** null means all-day. */
   value: TimeParts | null;
   onChange: (value: TimeParts | null) => void;
+  /** Accessible name (default "Time"). */
+  label?: string;
+  /** Placeholder when empty (default "All day"). */
+  placeholder?: string;
 }
 
 const TIME_ERROR = "Try a time like 3pm or 15:00";
@@ -16,7 +20,7 @@ const DEFAULT_ACTIVE = nearestTimeOption({ hour: 9, minute: 0 });
  * Editable combobox: type any time ("3pm", "15:00", "noon") or pick from a
  * 15-minute list. Clearing the field makes the item all-day.
  */
-export function TimeField({ value, onChange }: Props) {
+export function TimeField({ value, onChange, label = "Time", placeholder = "All day" }: Props) {
   const [text, setText] = useState(value ? formatTime(value) : "");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<number>(value ? nearestTimeOption(value) : DEFAULT_ACTIVE);
@@ -110,7 +114,7 @@ export function TimeField({ value, onChange }: Props) {
           ref={inputRef}
           class="time-field__input"
           role="combobox"
-          aria-label="Time"
+          aria-label={label}
           aria-expanded={open}
           aria-controls={ids.list}
           aria-autocomplete="none"
@@ -118,7 +122,7 @@ export function TimeField({ value, onChange }: Props) {
           aria-invalid={Boolean(error)}
           aria-describedby={error ? ids.error : undefined}
           autoComplete="off"
-          placeholder="All day"
+          placeholder={placeholder}
           value={text}
           onFocus={show}
           onClick={show}

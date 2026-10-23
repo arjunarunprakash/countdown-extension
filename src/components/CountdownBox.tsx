@@ -1,4 +1,5 @@
 import { abbreviate, describeRemaining, unitsRemaining } from "../lib/countdown";
+import { cycleItemUnit, unitOverrides } from "../state/ui";
 import type { Item, Unit } from "../lib/types";
 
 interface Props {
@@ -7,11 +8,17 @@ interface Props {
   now: number;
   /** Plays the completion animation: the box turns into a check mark. */
   completing?: boolean;
+  /** Clicking cycles this item's own unit (list rows; not editor previews). */
+  interactive?: boolean;
 }
+
+const SHORT_UNIT = { days: "days", hours: "hrs", minutes: "min", seconds: "sec" } as const;
 
 const BURST = [0, 60, 120, 180, 240, 300];
 
-export function CountdownBox({ item, unit, now, completing = false }: Props) {
+export function CountdownBox({ item, unit: globalUnit, now, completing = false, interactive = false }: Props) {
+  const override = interactive ? unitOverrides.value.get(item.id) : undefined;
+  const unit = override ?? globalUnit;
   if (completing) {
     return (
       <div class="countdown countdown--done" role="img" aria-label="Completed">
@@ -39,18 +46,36 @@ export function CountdownBox({ item, unit, now, completing = false }: Props) {
 
   const full = describeRemaining(target, now);
   const text = abbreviate(value);
+  const classes = `countdown${text.length >= 5 ? " countdown--long" : ""}${override ? " countdown--own-unit" : ""}`;
+  // Keyed by unit so switching units replays a short fade; per-second ticks don't.
+  const number = (
+    <span key={unit} class="countdown__value">
+      {text}
+    </span>
+  );
+
+  if (!interactive) {
+    return (
+      <div class={classes} role="img" aria-label={`${full} left`} data-tooltip={`${full} left`} data-tooltip-align="start">
+        {number}
+      </div>
+    );
+  }
+
   return (
-    <div
-      class={`countdown${text.length >= 5 ? " countdown--long" : ""}`}
-      role="img"
-      aria-label={`${full} left`}
-      data-tooltip={`${full} left`}
+    <button
+      type="button"
+      class={classes}
+      data-tooltip={`${full} left · click to change unit`}
       data-tooltip-align="start"
+      onClick={() => cycleItemUnit(item.id, globalUnit)}
     >
-      {/* Keyed by unit so switching units replays a short fade; per-second ticks don't. */}
-      <span key={unit} class="countdown__value">
-        {text}
+      {number}
+      {/* A box in its own unit says which; otherwise the header's label applies. */}
+      {override && <span class="countdown__unit">{SHORT_UNIT[unit]}</span>}
+      <span class="visually-hidden">
+        {override ? "" : ` ${unit}`} left, exactly {full}. Change unit for this item
       </span>
-    </div>
+    </button>
   );
 }

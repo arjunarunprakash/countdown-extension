@@ -78,15 +78,17 @@ describe("formatTime", () => {
 });
 
 describe("time options", () => {
-  it("covers the day in 15-minute steps", () => {
-    expect(TIME_OPTIONS).toHaveLength(96);
+  it("covers the day in 15-minute steps, ending with 11:59 PM", () => {
+    expect(TIME_OPTIONS).toHaveLength(97);
     expect(TIME_OPTIONS[0]).toEqual({ hour: 0, minute: 0 });
-    expect(TIME_OPTIONS.at(-1)).toEqual({ hour: 23, minute: 45 });
+    expect(TIME_OPTIONS.at(-2)).toEqual({ hour: 23, minute: 45 });
+    expect(TIME_OPTIONS.at(-1)).toEqual({ hour: 23, minute: 59 });
   });
 
   it("finds the first option at or after a time", () => {
     expect(TIME_OPTIONS[nearestTimeOption({ hour: 15, minute: 0 })]).toEqual({ hour: 15, minute: 0 });
     expect(TIME_OPTIONS[nearestTimeOption({ hour: 15, minute: 10 })]).toEqual({ hour: 15, minute: 15 });
-    expect(TIME_OPTIONS[nearestTimeOption({ hour: 23, minute: 50 })]).toEqual({ hour: 23, minute: 45 });
+    expect(TIME_OPTIONS[nearestTimeOption({ hour: 23, minute: 50 })]).toEqual({ hour: 23, minute: 59 });
+    expect(TIME_OPTIONS[nearestTimeOption({ hour: 23, minute: 59 })]).toEqual({ hour: 23, minute: 59 });
   });
 });

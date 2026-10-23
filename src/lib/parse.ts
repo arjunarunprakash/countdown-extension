@@ -67,11 +67,11 @@ export function formatTime({ hour, minute }: TimeParts): string {
   return `${h12}:${String(minute).padStart(2, "0")}\u00a0${hour < 12 ? "AM" : "PM"}`;
 }
 
-/** Every 15 minutes from 12:00 AM to 11:45 PM. */
-export const TIME_OPTIONS: readonly TimeParts[] = Array.from({ length: 96 }, (_, i) => ({
-  hour: Math.floor(i / 4),
-  minute: (i % 4) * 15,
-}));
+/** Every 15 minutes from 12:00 AM to 11:45 PM, then 11:59 PM (end-of-day deadlines). */
+export const TIME_OPTIONS: readonly TimeParts[] = [
+  ...Array.from({ length: 96 }, (_, i) => ({ hour: Math.floor(i / 4), minute: (i % 4) * 15 })),
+  { hour: 23, minute: 59 },
+];
 
 /** Index of the first option at or after the given time (wrapping to the last). */
 export function nearestTimeOption({ hour, minute }: TimeParts): number {

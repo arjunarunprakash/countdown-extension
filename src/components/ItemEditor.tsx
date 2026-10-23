@@ -13,6 +13,7 @@ import { SelectCell } from "./SelectCell";
 import { DatePicker } from "./DatePicker";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { Icon } from "./Icon";
+import { OccurrencePreview } from "./OccurrencePreview";
 import { TitleNumbering } from "./TitleNumbering";
 import { TimeField } from "./TimeField";
 import { TypeToggle } from "./TypeToggle";
@@ -164,6 +165,9 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   useDismiss(ref, close);
 
   const preview = withFields(item, { ...fields, title: renderTitle(fields.title, 0, numberFrom) }, new Date(now));
+  // List what a new or changed repeat will create (an unchanged series is shown in its stack).
+  const draftRule = ruleOf(repeat);
+  const showOccurrences = draftRule !== null && (isNew || !owner || !sameRepeat(repeat, initial));
 
   return (
     <li class="row grid-row row--editing">
@@ -214,6 +218,7 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
             repeating={repeat.preset !== "none"}
             count={occurrenceCount(repeat)}
             offset={owner && sameRepeat(repeat, initial) ? occurrenceIndex(owner, item) : 0}
+            hidePreview={showOccurrences}
             inputRef={titleRef}
           />
         )}
@@ -227,6 +232,16 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
         </div>
 
         <RepeatField date={fields.date} value={repeat} onChange={setRepeat} />
+        {showOccurrences && draftRule && (
+          <OccurrencePreview
+            start={new Date(preview.dateTime)}
+            allDay={Boolean(preview.allDay)}
+            rule={draftRule}
+            end={repeat.end}
+            template={fields.title.trim()}
+            numberFrom={numberFrom}
+          />
+        )}
 
         <textarea
           class="editor__notes"

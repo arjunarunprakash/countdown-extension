@@ -134,15 +134,16 @@ Floating layers (calendar, time list, tooltip) render in the browser's top layer
 | Component | Anatomy | States |
 |---|---|---|
 | **Header** | Select-all (selection mode) · unit label · New item, Import, Export, Theme | Unit label cycles Days → Hours → Minutes → Seconds; Import/Export pressed while their sheet is open; New item disabled in selection mode |
-| **Countdown box** | Number in `color-accent` on accent-tinted glass | Normal · long (17px) · `<1` · Overdue (red on danger tint) · Started (muted) · Completing (accent gradient, check draws, sparks) · Completed (check icon) |
+| **Countdown box** | Number in `color-accent` on accent-tinted glass; in list rows it's a button | Normal · hover (stronger tint) · pressed (scale 0.97) · own unit (small uppercase unit label under the number, `text-xs` semibold) · long (17px) · `<1` · Overdue (red on danger tint) · Started (muted) · Completing (accent gradient, check draws, sparks) · Completed (check icon) |
 | **Tile** | Title · Due/Starts tag · date · notes (one line) · meta line (repeat rule, Import badge) | Default · hover (`glass-fill-hover`) · pressed (scale 0.99) · past/completed (`glass-fill-muted`, muted title) · selected (accent tint + 1.5px accent ring) · import candidate (accent hairline) · duplicate (muted, subtle text, "Already added") |
-| **Stack** | Tile + up to two peeking layers (7px steps, 94% / 88% width) | Closed · open (full-row stack editor: occurrence rows with checkbox, date, relative time, Edit / Complete / Remove) |
+| **Stack** | Tile + up to two peeking layers (7px steps, 94% / 88% width) | Closed · open (full-row stack editor: Time for every occurrence; occurrence rows with checkbox, title, date · time · relative time, Edit / Complete / Remove) |
 | **Editor** | Title (+ "Rename: All upcoming / Only this one" for an occurrence of a series, + numbering row) · Due/Starts · date · time · repeat · notes · Complete / Remove | Opens with a 200ms fade-scale; saves on Escape, Enter in title or click outside |
 | **Date picker** | Field button → popover: month header, 7×6 grid, "Or type a date" field | Today ringed · selected filled with accent gradient · outside days subtle · disabled days (multi-date) greyed · error under the field |
 | **Multi-date picker** | Date chips (×) · "Add or remove dates" → same calendar, multi-select, count, typed add, Done | Click toggles, Shift-click adds a range |
 | **Time field** | Clock icon + text input (combobox) → 15-minute listbox | Active option accent-tinted; invalid input red ring + message |
 | **Repeat** | Repeat select · (Weekly on… → 7 weekday toggles) · (Custom dates → multi-date picker) · Ends select (+ count or date) | Weekday toggles: pressed = accent gradient |
-| **Title numbering** | "# Number each occurrence" pill → "Numbered from [n]" + preview + stop | Preview shows the next three titles |
+| **Title numbering** | "# Number each occurrence" pill → "Numbered from [n]" + stop | An inline preview of the next three titles appears only where no occurrence list is shown |
+| **Occurrence preview** | Bordered list: count heading, then rows of title (full width) over date | Up to 50 rows (next 10 if endless); scrolls past 200px |
 | **Bottom sheet** | Grabber · title + count · content · Cancel / primary | Slides up 240ms, down on exit |
 | **Export sheet** | 2×2 actions: Google Calendar, Download .ics, Share link (Soon badge, disabled), Remove (red) · note after an action | Actions disabled until something is selected |
 | **Import sheet** | Drop zone (dashed) · link field + Fetch + hint · or summary (source, counts, Change) | Drop zone accent when a file is dragged over · loading spinner · red error banner |

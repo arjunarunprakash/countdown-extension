@@ -1,6 +1,7 @@
 import { effect, signal } from "@preact/signals";
 import type { Unit } from "../lib/types";
 import { prefs } from "./store";
+import { unitOverrides } from "./ui";
 
 /** Current time. Ticks every second in Seconds mode, otherwise on each minute boundary. */
 export const now = signal(Date.now());
@@ -26,9 +27,11 @@ function schedule(unit: Unit) {
 }
 
 export function startClock() {
-  // Re-time the ticks whenever the unit changes, and refresh immediately.
+  // Re-time the ticks whenever the unit changes (header or any single box),
+  // and refresh immediately.
   effect(() => {
-    const unit = prefs.value.unit;
+    const anySeconds = [...unitOverrides.value.values()].includes("seconds");
+    const unit = anySeconds ? "seconds" : prefs.value.unit;
     now.value = Date.now();
     schedule(unit);
   });

@@ -15,6 +15,8 @@ interface Props {
   count?: number;
   /** Index of the first occurrence to preview (an existing series' next one). */
   offset?: number;
+  /** Hide the inline preview when titles are listed elsewhere (stack list, occurrence preview). */
+  hidePreview?: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
@@ -25,7 +27,7 @@ const PREVIEW = 3;
  * button inserts the {n} token at the caret, or replaces a selected number
  * and starts counting from it. A live preview shows the resulting titles.
  */
-export function TitleNumbering({ title, onTitleChange, from, onFromChange, repeating, count, offset = 0, inputRef }: Props) {
+export function TitleNumbering({ title, onTitleChange, from, onFromChange, repeating, count, offset = 0, hidePreview = false, inputRef }: Props) {
   const fromId = useId();
   const numbered = hasNumberToken(title);
   if (!repeating && !numbered) return null;
@@ -97,16 +99,18 @@ export function TitleNumbering({ title, onTitleChange, from, onFromChange, repea
           <Icon name="close" />
         </button>
       </div>
-      <p class="numbering__preview" aria-live="polite">
-        {repeating ? (
-          <>
-            {preview.join(", ")}
-            {more ? "…" : ""}
-          </>
-        ) : (
-          <>Set Repeat to number each occurrence. Until then, {NUMBER_TOKEN} reads as {from}.</>
-        )}
-      </p>
+      {!(repeating && hidePreview) && (
+        <p class="numbering__preview" aria-live="polite">
+          {repeating ? (
+            <>
+              {preview.join(", ")}
+              {more ? "…" : ""}
+            </>
+          ) : (
+            <>Set Repeat to number each occurrence. Until then, {NUMBER_TOKEN} reads as {from}.</>
+          )}
+        </p>
+      )}
     </div>
   );
 }

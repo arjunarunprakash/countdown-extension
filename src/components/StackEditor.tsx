@@ -6,8 +6,10 @@ import { formatTime } from "../lib/parse";
 import type { Item, ItemType, Unit } from "../lib/types";
 import { fromYmd, nextMatchingDay } from "../lib/calendar";
 import { toLocalISO } from "../lib/dates";
+import { hasNumberToken, renderTitle } from "../lib/numbering";
+import type { TimeParts } from "../lib/parse";
 import { occurrenceIndex } from "../lib/recurrence";
-import { changeSeriesRule, removeItems, removeSeries, saveSeries, series } from "../state/store";
+import { changeSeriesRule, removeItems, removeSeries, saveSeries, series, setSeriesTime } from "../state/store";
 import { completing, editing, focusTile, startCompletion } from "../state/ui";
 import { Checkbox } from "./Checkbox";
 import { CountdownBox } from "./CountdownBox";
@@ -15,6 +17,7 @@ import { SelectCell } from "./SelectCell";
 import { Icon } from "./Icon";
 import { occurrenceCount, repeatOf } from "./ItemEditor";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
+import { TimeField } from "./TimeField";
 import { TitleNumbering } from "./TitleNumbering";
 import { TypeToggle } from "./TypeToggle";
 
@@ -49,6 +52,25 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
   latestRepeat.current = repeat;
   const latestFrom = useRef(numberFrom);
   latestFrom.current = numberFrom;
+
+  // One time for the whole stack. Starts from the next occurrence's time.
+  const timeOf = (i: Item): TimeParts | null => {
+    if (i.allDay) return null;
+    const d = new Date(i.dateTime);
+    return { hour: d.getHours(), minute: d.getMinutes() };
+  };
+  const [time, setTime] = useState<TimeParts | null>(() => timeOf(head));
+  const [timeTouched, setTimeTouched] = useState(false);
+  const latestTime = useRef({ time, timeTouched });
+  latestTime.current = { time, timeTouched };
+  const mixedTimes = new Set(items.map((i) => JSON.stringify(timeOf(i)))).size > 1;
+
+  /** An occurrence's title as it will read with the title being edited. */
+  const liveTitle = (occ: Item) => {
+    if (occ.customTitle || !owner) return occ.customTitle ? occ.title : title.trim() || occ.title;
+    const template = title.trim() || owner.template.title;
+    return hasNumberToken(template) ? renderTitle(template, occurrenceIndex(owner, occ), numberFrom) : template;
+  };
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const latest = useRef({ title, type });
@@ -86,6 +108,8 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
     } else {
       saveSeries(seriesId, { title: template, type: ty, numberFrom: from });
     }
+    const tm = latestTime.current;
+    if (tm.timeTouched) setSeriesTime(seriesId, tm.time);
     editing.value = null;
     if (reason !== "outside") focusTile(items[0]!.id);
   };
@@ -129,9 +153,27 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
           repeating={owner !== undefined}
           count={occurrenceCount(repeat)}
           offset={owner && sameRepeat(repeat, initialRepeat) ? occurrenceIndex(owner, head) : 0}
+          hidePreview
           inputRef={titleRef}
         />
         <TypeToggle value={type} onChange={setType} />
+        <div class="stack-time">
+          <TimeField
+            value={time}
+            label="Time for every occurrence"
+            onChange={(t) => {
+              setTime(t);
+              setTimeTouched(true);
+            }}
+          />
+          <p class="field-hint">
+            {timeTouched
+              ? "Applies to every upcoming occurrence when you close."
+              : mixedTimes
+                ? "Times differ. Set one to use it for every occurrence."
+                : "Change to move every occurrence."}
+          </p>
+        </div>
         {initialRepeat !== NO_REPEAT && (
           <RepeatField date={partsOf(head.dateTime)} value={repeat} onChange={setRepeat} />
         )}
@@ -156,12 +198,13 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
                   <Checkbox
                     checked={selected.has(occ.id)}
                     onChange={(on) => toggle(occ.id, on)}
-                    label={formatItemDate(date, occ.allDay)}
+                    label={`${liveTitle(occ)}, ${formatItemDate(date, occ.allDay)}`}
                     hideLabel
                   />
                   <span class="occurrence__text">
-                    <span class="occurrence__date">{formatShortDateTime(date, true, new Date(now))}</span>
+                    <span class="occurrence__title">{liveTitle(occ)}</span>
                     <span class="occurrence__rel">
+                      {formatShortDateTime(date, true, new Date(now))} ·{" "}
                       {occ.allDay ? "All day" : formatTime({ hour: date.getHours(), minute: date.getMinutes() })} ·{" "}
                       {relativeLabel(date.getTime(), now)}
                     </span>
