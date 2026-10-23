@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Countdown
 
-> Last Updated: 2026-10-22
+> Last Updated: 2026-10-23
 
 Everything the Chrome Developer Dashboard asks for, ready to copy.
 
@@ -9,40 +9,36 @@ Everything the Chrome Developer Dashboard asks for, ready to copy.
 **Extension Name**
 Countdown
 
-**Short Description** (must match or be close to manifest.json's description; ≤ 132 characters)
-Live countdowns to your deadlines and events, in Chrome's side panel.
+**Short Description** (matches manifest.json's description; 122 of 132 characters)
+Live countdowns to your deadlines and events in Chrome's side panel, with categories, repeating items and calendar import.
 
 **Detailed Description** (plain text; the store strips Markdown)
 
 ```
-Countdown keeps your deadlines and event start times in Chrome's side panel, each with a live countdown, so you always know how long you have left without opening a calendar.
+Countdown keeps every deadline and event in Chrome's side panel with a live countdown, so you can see how long you have left without leaving the page you're on. Group things by course, project or trip, let weekly work repeat itself, and bring in the calendars you already use. Everything stays on your device.
 
 FEATURES
-• Live countdowns in days, hours, minutes or seconds. Click a single countdown to see just that one in another unit.
-• Deadlines ("Due") and events ("Starts"), with a Google Calendar–style date and time picker.
-• Repeating items: daily, weekdays, weekly on chosen days, every two weeks, monthly, yearly, or hand-picked dates, with an optional end. Repeats stack into one tidy tile.
-• Numbered titles for series such as "Chapter 1 Homework", "Chapter 2 Homework"…
-• Colour-coded categories. Drag items and whole series between them, and reorder categories by dragging.
-• Mark items complete and see exactly when you finished them. Overdue and Completed lists keep everything else out of the way.
-• Import from .ics files or calendar links (Google Calendar, Apple Calendar, Outlook), with a preview and duplicate detection.
-• Export to Google Calendar or download an .ics file for any calendar app.
-• Undo for every remove, complete and import.
-• Seven colour themes in light and dark, including a solid, extra-readable one.
-• A toolbar icon that matches your theme and Chrome's light or dark mode, and can show how long until your next item. You can turn the countdown off.
-• Full keyboard support, screen-reader friendly, and respects reduced-motion and reduced-transparency settings.
+• Live countdowns in days, hours, minutes or seconds, for deadlines (Due) and events (Starts)
+• Colour-coded categories: drag items and whole repeating series between them
+• Repeating items, from daily to yearly or on dates you pick, with numbered titles like "Chapter 4 Homework"
+• Import .ics files or Google, Apple and Outlook calendar links, with a preview that spots duplicates
+• Export to Google Calendar or any calendar app
+• Seven colour themes in light and dark, and a toolbar icon that can show the time left until your next item
+• Undo for every change, full keyboard support, and screen reader friendly
 
 HOW TO USE
 1. Pin Countdown and click its toolbar icon to open the side panel.
 2. Click + to add a deadline or event, or Import to bring in a calendar.
-3. Click the arrow next to + to create categories, then drag items into them.
+3. Use the arrow next to + to create categories, then drag items into them.
 
 PRIVACY
 Everything you add stays on your device. Countdown has no account, server, analytics or tracking.
 
 PERMISSIONS
-• Side panel: shows Countdown beside the page you're on.
-• Storage: saves your items and settings on this device.
-• Access to a calendar website (only if you choose to): when you paste a calendar link and press Fetch, Chrome asks whether Countdown may read that one site so it can download the calendar. Nothing else on the web is accessed.
+Countdown asks for no access to websites when you install it. If you paste a calendar link and press Fetch, Chrome asks whether Countdown may read that one site so it can download the calendar.
+
+SUPPORT
+Questions or bugs: https://github.com/arjunarunprakash/countdown-extension/issues
 ```
 
 **Category**
@@ -59,16 +55,27 @@ English
 | Asset | Dimensions | Status | Filename |
 |-------|-----------|--------|----------|
 | Store Icon | 128×128 PNG | ✅ Ready | `public/icons/icon-128.png` |
-| Screenshot 1 | 1280×800 | ✅ Ready | `store-assets/screenshot-1-light.png` |
-| Screenshot 2 | 1280×800 | ✅ Ready | `store-assets/screenshot-1-dark.png` |
-| Screenshot 3 | 1280×800 | ⬜ Not created | Categories and a repeating stack |
-| Screenshot 4 | 1280×800 | ⬜ Not created | Import preview with duplicates |
-| Small Promo Tile | 440×280 | ⬜ Not created | |
-| Marquee Promo Tile | 1400×560 | ⬜ Not created | |
+| Screenshot 1 | 1280×800 | ✅ Ready | `store-assets/screenshot-1.png` |
+| Screenshot 2 | 1280×800 | ✅ Ready | `store-assets/screenshot-2.png` |
+| Screenshot 3 | 1280×800 | ✅ Ready | `store-assets/screenshot-3.png` |
+| Screenshot 4 | 1280×800 | ✅ Ready | `store-assets/screenshot-4.png` |
+| Screenshot 5 | 1280×800 | ✅ Ready | `store-assets/screenshot-5.png` |
+| Small Promo Tile | 440×280 | ✅ Ready | `store-assets/promo-small.png` |
+| Marquee Promo Tile | 1400×560 | ✅ Ready | `store-assets/promo-marquee.png` |
 
 ### Screenshot Notes
 
-Screenshots 1–2 show the panel with sample data in light and dark mode next to a short feature summary. Regenerate them after UI changes with `bash scripts/screenshots.sh` (instructions in the script). Screenshots 3–4 would show categories with a coloured stack, and the import preview; they're optional.
+Following the store's [listing guidance](https://developer.chrome.com/docs/webstore/best-listing): five full-bleed 1280×800 images with square corners, one feature each, a short headline and one line of text, a single callout pointing at the feature, and branding that matches the icon. Every panel image is a real capture of the current build, not a mock-up. Upload them in this order:
+
+1. **Every deadline, counting down.** The panel docked beside a course page in Chrome, with the toolbar icon's "2d" badge called out.
+2. **Colour-coded categories.** Mid-drag: "Flight to Lisbon → Personal", with the Personal section lit as the drop target.
+3. **Repeats that number themselves.** A weekly "Chapter {n} Homework" series open, listing Chapter 4–9 with their dates.
+4. **Bring in any calendar.** An import preview: three new events marked Import and one greyed out as Already added.
+5. **Make it yours.** Lagoon (light) with Appearance open beside Orchid (dark), and three toolbar icons sweeping from 9d to 5h.
+
+The promo tile and marquee use the saturated accent gradient (not white or light grey), the logo and name, and little text, so they read at half size.
+
+**Regenerating** after UI changes: with a build served by `vite preview --port 4173`, run `bash scripts/screenshots.sh`. `store-assets/scenes.mjs` loads each scene's data into the real panel and performs the interaction; `store-assets/render.mjs` composes the final images.
 
 ## Permissions Justification
 
@@ -130,7 +137,7 @@ The source is [PRIVACY.md](PRIVACY.md). Keep it consistent with the Privacy & Da
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-10-22 | First release: live countdowns, repeating items, categories, import/export, seven colour themes, live toolbar icon | Draft |
+| 1.0.0 | 2026-10-23 | First release: live countdowns, repeating items, categories, import/export, seven colour themes, live toolbar icon | Draft |
 
 ## Review Notes
 

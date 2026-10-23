@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Countdown",
   "version": "1.0.0",
-  "description": "Live countdowns to your deadlines and events, in Chrome's side panel.",
+  "description": "Live countdowns to your deadlines and events in Chrome's side panel, with categories, repeating items and calendar import.",
   "minimum_chrome_version": "123",
   "permissions": [
     "sidePanel",
