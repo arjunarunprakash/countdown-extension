@@ -1,4 +1,5 @@
 import { MAX_CUSTOM_DATES, type RepeatEnd, type RepeatRule, type Series } from "./recurrence";
+import { CATEGORY_COLORS, MAX_CATEGORY_NAME, type Category } from "./categories";
 import { isValidTimeZone } from "./timezone";
 import type { CompletionRecord, Item, Unit } from "./types";
 
@@ -24,10 +25,12 @@ export interface StoredState {
   items: Item[];
   completions: CompletionRecord[];
   series: Series[];
+  categories: Category[];
   prefs: Prefs;
 }
 
 type StorageKey = keyof StoredState | "schemaVersion";
+
 
 /** The slice of chrome.storage.local the app uses, so tests and plain-browser previews can swap it. */
 export interface StorageBackend {
@@ -105,9 +108,11 @@ export function isItem(v: unknown): v is Item {
     (o.allDay === undefined || typeof o.allDay === "boolean") &&
     isOptionalString(o.notes) &&
     isOptionalString(o.uid) &&
+    isOptionalString(o.categoryId) &&
     (o.numberFrom === undefined || Number.isInteger(o.numberFrom)) &&
     isOptionalString(o.seriesId) &&
     (o.customTitle === undefined || typeof o.customTitle === "boolean") &&
+    isOptionalString(o.categoryId) &&
     (o.completedAt === undefined || isDateString(o.completedAt))
   );
 }
@@ -190,6 +195,21 @@ export function isSeries(v: unknown): v is Series {
   );
 }
 
+const COLORS = new Set<unknown>(CATEGORY_COLORS);
+
+export function isCategory(v: unknown): v is Category {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    isString(o.id) &&
+    isString(o.name) &&
+    o.name.length <= MAX_CATEGORY_NAME &&
+    COLORS.has(o.color) &&
+    (o.collapsed === undefined || typeof o.collapsed === "boolean")
+  );
+}
+
+export const parseCategories = (v: unknown): Category[] => (Array.isArray(v) ? v.filter(isCategory) : []);
 export const parseItems = (v: unknown): Item[] => (Array.isArray(v) ? v.filter(isItem) : []);
 export const parseSeries = (v: unknown): Series[] => (Array.isArray(v) ? v.filter(isSeries) : []);
 export const parseCompletions = (v: unknown): CompletionRecord[] => (Array.isArray(v) ? v.filter(isCompletion) : []);
@@ -200,6 +220,7 @@ export async function loadState(backend: StorageBackend): Promise<StoredState> {
     items: parseItems(raw.items),
     completions: parseCompletions(raw.completions),
     series: parseSeries(raw.series),
+    categories: parseCategories(raw.categories),
     prefs: parsePrefs(raw.prefs),
   };
   // Future schema changes migrate here, keyed on raw.schemaVersion.

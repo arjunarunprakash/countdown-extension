@@ -23,6 +23,9 @@ export function cycleItemUnit(id: string, globalUnit: Unit) {
   unitOverrides.value = map;
 }
 
+/** The category whose editor popover is open. */
+export const editingCategory = signal<string | null>(null);
+
 /** Items playing the completion animation; they finish completing when it ends. */
 export const completing = signal<ReadonlySet<string>>(new Set());
 

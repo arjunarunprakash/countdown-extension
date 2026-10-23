@@ -4,18 +4,20 @@ import { enterSelection, exitSelection, isSelecting, selected, selectionMode, se
 import { prefs, setPrefs } from "../state/store";
 import { cycleTheme, THEME_LABEL } from "../state/theme";
 import { Checkbox } from "./Checkbox";
+import { AddMenu } from "./AddMenu";
 import { IconButton } from "./IconButton";
 
 const THEME_ICON = { system: "monitor", light: "sun", dark: "moon" } as const;
 
 interface Props {
   unit: Unit;
-  onNew: () => void;
+  onNew: (categoryId?: string | null) => void;
+  onNewCategory: () => void;
   /** Keys selectable in selection mode, for Select all. */
   selectable: string[];
 }
 
-export function Header({ unit, onNew, selectable }: Props) {
+export function Header({ unit, onNew, onNewCategory, selectable }: Props) {
   const selecting = isSelecting.value;
   const count = selectable.filter((k) => selected.value.has(k)).length;
   const all = count > 0 && count === selectable.length;
@@ -50,7 +52,10 @@ export function Header({ unit, onNew, selectable }: Props) {
         Showing time left in {unit}
       </span>
       <div class="header__actions">
-        <IconButton icon="plus" label="New item" onClick={onNew} disabled={selecting} />
+        <span class="add-split">
+          <IconButton icon="plus" label="New item" onClick={() => onNew()} disabled={selecting} />
+          <AddMenu onNewItem={onNew} onNewCategory={onNewCategory} disabled={selecting} />
+        </span>
         <IconButton
           id="import-button"
           icon="import"

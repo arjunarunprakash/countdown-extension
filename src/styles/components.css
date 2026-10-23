@@ -2117,6 +2117,9 @@ button.tile:active {
 }
 
 .stack-time .time-field {
+  /* .time-field's flex-basis is meant for the horizontal date/time row; in
+     this vertical column it would become a 112px height. */
+  flex: none;
   max-width: 160px;
 }
 
@@ -2215,5 +2218,372 @@ button.countdown:active {
 @media (prefers-reduced-motion: reduce) {
   .countdown__unit {
     animation: none;
+  }
+}
+
+/* ── Categories ────────────────────────────────────────────────
+   A category class sets --cat / --cat-subtle; sections, rows, menu items,
+   swatches and the drag label read them. */
+.category--indigo {
+  --cat: var(--cat-indigo);
+  --cat-subtle: var(--cat-indigo-subtle);
+}
+
+.category--violet {
+  --cat: var(--cat-violet);
+  --cat-subtle: var(--cat-violet-subtle);
+}
+
+.category--pink {
+  --cat: var(--cat-pink);
+  --cat-subtle: var(--cat-pink-subtle);
+}
+
+.category--orange {
+  --cat: var(--cat-orange);
+  --cat-subtle: var(--cat-orange-subtle);
+}
+
+.category--amber {
+  --cat: var(--cat-amber);
+  --cat-subtle: var(--cat-amber-subtle);
+}
+
+.category--green {
+  --cat: var(--cat-green);
+  --cat-subtle: var(--cat-green-subtle);
+}
+
+.category--teal {
+  --cat: var(--cat-teal);
+  --cat-subtle: var(--cat-teal-subtle);
+}
+
+.category--slate {
+  --cat: var(--cat-slate);
+  --cat-subtle: var(--cat-slate-subtle);
+}
+
+.category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 calc(var(--space-1) * -1);
+  padding: var(--space-0-5) var(--space-1) var(--space-1);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.category + .category {
+  margin-top: var(--space-1);
+}
+
+.category__head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  min-height: var(--size-icon-button);
+  touch-action: none;
+}
+
+.category__head[data-category-head] {
+  cursor: grab;
+}
+
+.category__title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.category__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  height: var(--size-icon-button);
+  padding: 0 var(--space-1);
+  margin-left: calc(var(--space-1) * -1);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.category__toggle:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.category__toggle:disabled {
+  cursor: inherit;
+}
+
+.category__toggle .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-subtle);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.category__toggle[aria-expanded="false"] .icon {
+  transform: rotate(-90deg);
+}
+
+.category__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--cat, var(--color-text-subtle));
+  box-shadow: 0 0 0 2px var(--cat-subtle, transparent);
+}
+
+.category__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category__count,
+.category__summary {
+  flex: none;
+  color: var(--color-text-subtle);
+  font-weight: var(--weight-regular);
+}
+
+.category__summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.category__actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.category__empty {
+  padding: var(--space-1-5);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* Drop target while dragging a tile over a section. */
+.category--drop-target {
+  background: var(--cat-subtle, var(--color-surface-hover));
+  box-shadow: inset 0 0 0 1.5px var(--cat, var(--color-border-strong));
+}
+
+.category--drop-target .category__empty {
+  border-color: var(--cat, var(--color-border-strong));
+  color: var(--color-text);
+}
+
+/* Reordering categories: a line where the dragged one will land. */
+.category--insert-before {
+  box-shadow: 0 -3px 0 0 var(--color-accent);
+}
+
+.category--insert-after {
+  box-shadow: 0 3px 0 0 var(--color-accent);
+}
+
+.category--dragging {
+  opacity: 0.5;
+}
+
+/* Rows in a category: colored countdown and a stripe on the tile. */
+.row--cat .countdown:not(.countdown--past):not(.countdown--done),
+.category .row .countdown:not(.countdown--past):not(.countdown--done) {
+  background: linear-gradient(var(--cat-subtle, var(--color-accent-subtle)), var(--cat-subtle, var(--color-accent-subtle))), var(--glass-fill);
+  color: var(--cat, var(--color-accent));
+}
+
+.row--cat .tile::before {
+  content: "";
+  position: absolute;
+  top: var(--space-1-5);
+  bottom: var(--space-1-5);
+  left: 0;
+  width: 3px;
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  background: var(--cat);
+}
+
+.row--cat.row--completed .countdown {
+  color: var(--cat);
+}
+
+/* While dragging: no text selection, a grabbing cursor everywhere. */
+body.is-dragging,
+body.is-dragging * {
+  user-select: none;
+  cursor: grabbing !important;
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 240px;
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-full);
+  background: var(--color-inverse-bg);
+  color: var(--color-inverse-text);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  pointer-events: none;
+}
+
+.drag-ghost__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drag-ghost__target {
+  flex: none;
+  opacity: 0.75;
+}
+
+/* ── Add split button and menu ─────────────────────────────── */
+.add-split {
+  display: inline-flex;
+}
+
+.add-split .icon-button:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.add-menu__toggle {
+  width: 24px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.add-menu__toggle .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.popover--menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  max-width: calc(100vw - var(--space-2) * 2);
+  padding: var(--space-0-5);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.menu-item .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-subtle);
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--color-surface-hover);
+}
+
+.menu-item:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: var(--space-0-5) 0;
+  background: var(--color-border);
+}
+
+/* ── Category editor popover ───────────────────────────────── */
+.popover--category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  width: min(260px, calc(100vw - var(--space-2) * 2));
+  padding: var(--space-1-5);
+}
+
+.category-editor__label {
+  margin-top: var(--space-1);
+}
+
+/* One row of eight at every panel width. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  justify-items: center;
+  padding-block: var(--space-0-5);
+}
+
+.swatch {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--cat);
+  color: light-dark(#ffffff, #0d0f1a);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  transition: transform var(--duration-instant) var(--ease-out);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch[aria-checked="true"] {
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--cat);
+}
+
+.swatch .icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5;
+}
+
+.category-editor__row {
+  display: flex;
+  gap: var(--space-0-5);
+  margin-top: var(--space-1);
+}
+
+.category-editor__delete {
+  align-self: flex-start;
+  margin-left: calc(var(--space-1) * -1);
+}
+
+.category-field__dot {
+  position: absolute;
+  left: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category,
+  .swatch {
+    transition: none;
   }
 }

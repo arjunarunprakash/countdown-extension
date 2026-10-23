@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PREFS, isItem, isSeries, loadState, parsePrefs, SCHEMA_VERSION, type StorageBackend } from "../src/lib/storage";
+import { DEFAULT_PREFS, isCategory, isItem, isSeries, loadState, parsePrefs, SCHEMA_VERSION, type StorageBackend } from "../src/lib/storage";
 
 function memoryBackend(initial: Record<string, unknown> = {}): StorageBackend & { data: Record<string, unknown> } {
   const data = { ...initial };
@@ -25,7 +25,7 @@ describe("loadState", () => {
   it("returns defaults on first run and stamps the schema version", async () => {
     const backend = memoryBackend();
     const state = await loadState(backend);
-    expect(state).toEqual({ items: [], completions: [], series: [], prefs: DEFAULT_PREFS });
+    expect(state).toEqual({ items: [], completions: [], series: [], categories: [], prefs: DEFAULT_PREFS });
     expect(backend.data.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
@@ -44,8 +44,8 @@ describe("loadState", () => {
   });
 
   it("survives non-array values", async () => {
-    const state = await loadState(memoryBackend({ items: { a: 1 }, completions: "nope", prefs: 42 }));
-    expect(state).toEqual({ items: [], completions: [], series: [], prefs: DEFAULT_PREFS });
+    const state = await loadState(memoryBackend({ items: { a: 1 }, completions: "nope", categories: {}, prefs: 42 }));
+    expect(state).toEqual({ items: [], completions: [], series: [], categories: [], prefs: DEFAULT_PREFS });
   });
 });
 
@@ -74,6 +74,16 @@ describe("isSeries", () => {
     expect(isSeries({ ...series, end: { type: "until", date: "31/01/2027" } })).toBe(false);
     expect(isSeries({ ...series, template: null })).toBe(false);
     expect(isSeries({ ...series, nextIndex: 1.5 })).toBe(false);
+  });
+});
+
+describe("isCategory", () => {
+  it("accepts palette colors and bounded names only", () => {
+    expect(isCategory({ id: "c", name: "CPSC 213", color: "teal" })).toBe(true);
+    expect(isCategory({ id: "c", name: "CPSC 213", color: "teal", collapsed: true })).toBe(true);
+    expect(isCategory({ id: "c", name: "CPSC 213", color: "#ff0000" })).toBe(false);
+    expect(isCategory({ id: "c", name: "x".repeat(41), color: "teal" })).toBe(false);
+    expect(isCategory({ id: 1, name: "A", color: "teal" })).toBe(false);
   });
 });
 

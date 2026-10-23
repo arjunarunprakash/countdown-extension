@@ -9,8 +9,9 @@ import { toLocalISO } from "../lib/dates";
 import { hasNumberToken, renderTitle } from "../lib/numbering";
 import type { TimeParts } from "../lib/parse";
 import { occurrenceIndex } from "../lib/recurrence";
-import { changeSeriesRule, removeItems, removeSeries, saveSeries, series, setSeriesTime } from "../state/store";
+import { assignCategory, changeSeriesRule, removeItems, removeSeries, saveSeries, series, setSeriesTime } from "../state/store";
 import { completing, editing, focusTile, startCompletion } from "../state/ui";
+import { CategoryField } from "./CategoryField";
 import { Checkbox } from "./Checkbox";
 import { CountdownBox } from "./CountdownBox";
 import { SelectCell } from "./SelectCell";
@@ -61,6 +62,9 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
   };
   const [time, setTime] = useState<TimeParts | null>(() => timeOf(head));
   const [timeTouched, setTimeTouched] = useState(false);
+  const [categoryId, setCategoryId] = useState<string | null>(head.categoryId ?? null);
+  const latestCategory = useRef(categoryId);
+  latestCategory.current = categoryId;
   const latestTime = useRef({ time, timeTouched });
   latestTime.current = { time, timeTouched };
   const mixedTimes = new Set(items.map((i) => JSON.stringify(timeOf(i)))).size > 1;
@@ -110,6 +114,9 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
     }
     const tm = latestTime.current;
     if (tm.timeTouched) setSeriesTime(seriesId, tm.time);
+    if ((head.categoryId ?? null) !== latestCategory.current) {
+      assignCategory({ kind: "series", id: seriesId }, latestCategory.current, true);
+    }
     editing.value = null;
     if (reason !== "outside") focusTile(items[0]!.id);
   };
@@ -157,6 +164,7 @@ export function StackEditorRow({ seriesId, items, unit, now }: Props) {
           inputRef={titleRef}
         />
         <TypeToggle value={type} onChange={setType} />
+        <CategoryField value={categoryId} onChange={setCategoryId} />
         <div class="stack-time">
           <TimeField
             value={time}

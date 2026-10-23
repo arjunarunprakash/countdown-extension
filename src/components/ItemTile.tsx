@@ -13,9 +13,11 @@ interface Props {
   selected?: boolean;
   /** Small label after the type tag, e.g. "Import" or "Already added". */
   badge?: { text: string; tone: "accent" | "muted" };
+  /** Starts a drag (moving the item into a category). */
+  onPointerDown?: (e: PointerEvent) => void;
 }
 
-export function ItemTile({ item, past = false, meta, onOpen, selecting = false, selected = false, badge }: Props) {
+export function ItemTile({ item, past = false, meta, onOpen, selecting = false, selected = false, badge, onPointerDown }: Props) {
   const date = formatItemDate(new Date(item.dateTime), item.allDay);
   // No aria-label: the button is named by its visible content (title, tag,
   // date, notes, meta), so speech-input users can say what they see. Its
@@ -28,6 +30,7 @@ export function ItemTile({ item, past = false, meta, onOpen, selecting = false, 
       tabIndex={selecting ? -1 : undefined}
       aria-hidden={selecting || undefined}
       onClick={onOpen}
+      onPointerDown={onPointerDown}
     >
       <span class="tile__top">
         <span class="tile__title">

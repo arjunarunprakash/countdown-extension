@@ -23,17 +23,35 @@ import {
   selectionMode,
   type SelectionMode,
 } from "../state/selection";
-import { items, prefs, ready } from "../state/store";
-import { editing } from "../state/ui";
+import { CategorySection } from "../components/CategorySection";
+import { DragGhost } from "../components/DragGhost";
+import { groupRows, nextColor } from "../lib/categories";
+import { drag } from "../state/drag";
+import { addCategory, categories, items, prefs, ready, updateCategory } from "../state/store";
+import { editing, editingCategory } from "../state/ui";
 
 const rowKey = (row: Row) => (row.kind === "single" ? row.item.id : row.seriesId);
 
-function startNew() {
-  if (editing.value?.kind === "new") {
+/** Opens a new item, optionally inside a category (which is expanded if collapsed). */
+function startNew(categoryId: string | null = null) {
+  const current = editing.value;
+  if (current?.kind === "new" && (current.draft.categoryId ?? null) === categoryId) {
     document.querySelector<HTMLInputElement>(".row--editing .editor__title")?.focus();
     return;
   }
-  editing.value = { kind: "new", draft: newItem(new Date()) };
+  const draft = newItem(new Date());
+  if (categoryId) {
+    draft.categoryId = categoryId;
+    if (categories.value.find((c) => c.id === categoryId)?.collapsed) updateCategory(categoryId, { collapsed: false });
+  }
+  editing.value = { kind: "new", draft };
+}
+
+/** Creates a category and opens its editor so it can be named and colored. */
+function startNewCategory() {
+  const c = addCategory("New category", nextColor(categories.value));
+  editingCategory.value = c.id;
+  setTimeout(() => document.querySelector(`[data-drop-category="${CSS.escape(c.id)}"]`)?.scrollIntoView({ block: "nearest" }));
 }
 
 /** Sheet slide-down duration; matches --duration-slow. */
@@ -77,20 +95,55 @@ export function App() {
   const e = editing.value;
   const nothingUpcoming = upcoming.length === 0 && e?.kind !== "new";
   const nothingAtAll = nothingUpcoming && overdue.length === 0 && completed.length === 0;
+  const cats = categories.value;
+  const grouped = cats.length > 0;
+  const draft = e?.kind === "new" ? e.draft : null;
+  const draftCategory = draft?.categoryId && cats.some((c) => c.id === draft.categoryId) ? draft.categoryId : null;
+  const draftRow = draft && <EditorRow key={draft.id} item={draft} isNew unit={unit} now={t} />;
+  const draggingItem = drag.value !== null && drag.value.subject.kind !== "category";
 
   return (
     <div class={`app${mode ? " app--selecting" : ""}${sheet.mounted ? " app--sheet" : ""}`}>
-      <Header unit={unit} onNew={startNew} selectable={selectable} />
+      <Header unit={unit} onNew={startNew} onNewCategory={startNewCategory} selectable={selectable} />
       <main class="list">
-        {nothingUpcoming && mode !== "import" && (
-          <EmptyState variant={nothingAtAll ? "first" : "clear"} onNew={startNew} onImport={() => enterSelection("import")} />
+        {nothingUpcoming && mode !== "import" && !grouped && (
+          <EmptyState variant={nothingAtAll ? "first" : "clear"} onNew={() => startNew()} onImport={() => enterSelection("import")} />
         )}
-        <ul role="list" class="list list--flush" aria-label="Upcoming">
-          {e?.kind === "new" && <EditorRow key={e.draft.id} item={e.draft} isNew unit={unit} now={t} />}
-          {upcoming.map((row) => (
-            <ItemRow key={rowKey(row)} row={row} unit={unit} now={t} />
-          ))}
-        </ul>
+        {!grouped ? (
+          <ul role="list" class="list list--flush" aria-label="Upcoming">
+            {draftRow}
+            {upcoming.map((row) => (
+              <ItemRow key={rowKey(row)} row={row} unit={unit} now={t} />
+            ))}
+          </ul>
+        ) : (
+          <>
+            {/* A new item without a category stays at the top, as without categories. */}
+            {draft && !draftCategory && (
+              <ul role="list" class="list list--flush" aria-label="New item">
+                {draftRow}
+              </ul>
+            )}
+            {groupRows(upcoming, cats).map(({ category, rows }) =>
+              // "Other" appears when it has items, or as a drop target while dragging.
+              category || rows.length > 0 || draggingItem ? (
+                <CategorySection
+                  key={category?.id ?? "none"}
+                  category={category}
+                  rows={rows}
+                  now={t}
+                  onNewItem={startNew}
+                  showList={draft !== null && draftCategory !== null && draftCategory === category?.id}
+                >
+                  {draftCategory !== null && draftCategory === category?.id && draftRow}
+                  {rows.map((row) => (
+                    <ItemRow key={rowKey(row)} row={row} unit={unit} now={t} />
+                  ))}
+                </CategorySection>
+              ) : null,
+            )}
+          </>
+        )}
         <OverdueSection items={overdue} unit={unit} now={t} />
         <CompletedSection items={completed} now={t} />
       </main>
@@ -100,6 +153,7 @@ export function App() {
         ) : (
           <ExportSheet entries={entries} state={sheet.state} />
         ))}
+      <DragGhost />
       <Toast />
       <TooltipLayer />
     </div>

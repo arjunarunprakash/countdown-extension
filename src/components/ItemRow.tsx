@@ -3,7 +3,8 @@ import type { Item, Row, Unit } from "../lib/types";
 import { describeEnd, describeRule } from "../lib/recurrence";
 import { draftIndex } from "../state/importer";
 import { isSelecting, selected, selectionMode, seriesKey, toggleSelected } from "../state/selection";
-import { series } from "../state/store";
+import { startDragOnPress, type DragSubject } from "../state/drag";
+import { assignCategory, categories, series, type CategoryTarget } from "../state/store";
 import { completing, editing } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { Icon } from "./Icon";
@@ -69,6 +70,32 @@ function selectionFor(key: string, candidateId: string, isCandidate: boolean) {
   };
 }
 
+/** Class giving a row its category's color (rows outside category sections need it too). */
+function categoryClass(categoryId: string | undefined): string {
+  const c = categoryId ? categories.value.find((x) => x.id === categoryId) : undefined;
+  return c ? ` row--cat category--${c.color}` : "";
+}
+
+/**
+ * Press-and-drag on a tile moves it (or its whole series) into the category
+ * under the pointer. Only once categories exist, and not while selecting or editing.
+ */
+function dragToCategory(target: CategoryTarget, title: string, categoryId: string | undefined) {
+  return (e: PointerEvent) => {
+    if (categories.value.length === 0 || isSelecting.value || editing.value) return;
+    const color = categories.value.find((c) => c.id === categoryId)?.color;
+    const subject: DragSubject = { kind: target.kind, id: target.id, title, ...(color ? { color } : {}) };
+    startDragOnPress(e, {
+      subject: () => subject,
+      onDrop: (s) => {
+        if (s.overCategory === null) return;
+        const to = s.overCategory === "none" ? null : s.overCategory;
+        if ((to ?? undefined) !== categoryId) assignCategory(target, to);
+      },
+    });
+  };
+}
+
 /** "Weekly on Monday · until 31 December", or null if the item doesn't repeat. */
 function repeatLabel(seriesId: string | undefined): string | null {
   // Saved series, or one still being previewed for import.
@@ -83,7 +110,7 @@ function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: num
   const ref = useCollapse(isCompleting);
   const sel = selectionFor(item.id, item.id, draftIndex.value.itemIds.has(item.id));
   return (
-    <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}${sel.rowClass}`}>
+    <li ref={ref} class={`row grid-row${isCompleting ? " row--completing" : ""}${sel.rowClass}${categoryClass(item.categoryId)}`}>
       <SelectCell selKey={sel.selKey} label={item.title} disabled={sel.duplicate} />
       <CountdownBox item={item} unit={unit} now={now} completing={isCompleting} interactive />
       <ItemTile
@@ -94,6 +121,7 @@ function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: num
         selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(item.id)}
         badge={sel.badge}
         onOpen={() => (isSelecting.value ? sel.toggle() : (editing.value = { kind: "item", id: item.id }))}
+        onPointerDown={sel.badge ? undefined : dragToCategory({ kind: "item", id: item.id }, item.title, item.categoryId)}
       />
     </li>
   );
@@ -107,7 +135,7 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
   const key = seriesKey(seriesId);
   const sel = selectionFor(key, seriesId, draftIndex.value.seriesIds.has(seriesId));
   return (
-    <li class={`row row--stack grid-row${sel.rowClass}`} style={{ "--stack-layers": layers }}>
+    <li class={`row row--stack grid-row${sel.rowClass}${categoryClass(head.categoryId)}`} style={{ "--stack-layers": layers }}>
       <SelectCell selKey={sel.selKey} label={`${head.title} (all occurrences)`} disabled={sel.duplicate} />
       <CountdownBox item={head} unit={unit} now={now} completing={isCompleting} interactive />
       <div class="stack">
@@ -117,6 +145,7 @@ function StackRow({ seriesId, items, unit, now }: { seriesId: string; items: Ite
           selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(key)}
           badge={sel.badge}
           onOpen={() => (isSelecting.value ? sel.toggle() : (editing.value = { kind: "series", seriesId }))}
+          onPointerDown={sel.badge ? undefined : dragToCategory({ kind: "series", id: seriesId }, head.title, head.categoryId)}
           meta={<RepeatMeta text={repeatLabel(seriesId) ?? `Repeats · ${more} more`} />}
         />
         {layers >= 1 && <div class="stack__layer stack__layer--1" aria-hidden="true" />}

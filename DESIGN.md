@@ -38,6 +38,23 @@ Semantic tokens, written once as `light-dark(<light>, <dark>)`. Light/dark follo
 | `color-danger-subtle` | `#b3261f` @ 10% | `#ff9d94` @ 14% | Overdue box tint, error banners |
 | `color-focus` | = accent | = accent | Focus ring |
 
+### Categories
+
+Eight colours for user categories. Each has a text/stripe colour (`--cat-<name>`) and a 10% (light) / 14% (dark) tint of it (`--cat-<name>-subtle`). A `.category--<name>` class sets `--cat` and `--cat-subtle`, and everything inside picks them up. The palette is fixed so every option passes AA; a free picker couldn't promise that.
+
+| Name | Light | Dark | Countdown box, worst case (light / dark) |
+|---|---|---|---|
+| indigo | `#3451d1` | `#a3b2ff` | 4.57 / 4.76 |
+| violet | `#7438c4` | `#c8a8ff` | 4.75 / 4.82 |
+| pink | `#a0225e` | `#ff9fcd` | 5.04 / 5.10 |
+| orange | `#954300` | `#ffb277` | 4.78 / 5.41 |
+| amber | `#735400` | `#f0cc62` | 4.94 / 5.97 |
+| green | `#22672e` | `#90d89c` | 4.86 / 5.56 |
+| teal | `#09616b` | `#80d4de` | 5.03 / 5.50 |
+| slate | `#4c5666` | `#b9c2cf` | 5.24 / 5.25 |
+
+Measured like the rest of the palette: the colour on its own tint over glass over every combination of the three gradient glows. The 3px tile stripe is ≥ 5.25:1 against the tile (non-text needs 3:1). New categories take the first colour not already in use.
+
 ### Neutrals
 
 | Token | Light | Dark | Use |
@@ -147,6 +164,11 @@ Floating layers (calendar, time list, tooltip) render in the browser's top layer
 | **Bottom sheet** | Grabber · title + count · content · Cancel / primary | Slides up 240ms, down on exit |
 | **Export sheet** | 2×2 actions: Google Calendar, Download .ics, Share link (Soon badge, disabled), Remove (red) · note after an action | Actions disabled until something is selected |
 | **Import sheet** | Drop zone (dashed) · link field + Fetch + hint · or summary (source, counts, Change) | Drop zone accent when a file is dragged over · loading spinner · red error banner |
+| **Category section** | Header: chevron · dot (`--cat`, 2px `--cat-subtle` halo) · name · count (collapsed: "· next in 3 days") · **+** · **⋯**. Rows below; dashed "Drag items here" box when empty | Collapsed (chevron −90°) · drop target (`--cat-subtle` fill, 1.5px `--cat` inset ring) · being dragged (50% opacity) · insert line (3px accent above or below). **Other** has no menu and can't be collapsed or moved |
+| **Category row** | Countdown box tinted `--cat-subtle` with `--cat` number; 3px `--cat` stripe on the tile's left edge, inset 12px top and bottom | Overdue and Started keep their own colours; completed rows keep the stripe |
+| **Category editor** | Popover: Name · Colour (8 × 24px swatches in one row, radiogroup) · Move up / Move down · Delete category · hint | Selected swatch: check icon + 2px ring offset by 2px; saves on Enter, Escape or click outside |
+| **Add split button** | **+** (new item) joined to a 24px **▾** → menu: New category · New item · New item in each category | Menu items keyboard-navigable with arrows |
+| **Drag ghost** | Inverse pill following the pointer: title · "→ target" | Appears after 6px of movement; the panel auto-scrolls within 48px of its edges |
 | **Toast** | Message · "· Undo" | 5s, pauses on hover/focus, sits above the sheet |
 | **Tooltip** | Inverse pill | 400ms hover delay; immediate on keyboard focus |
 | **Empty state** | Ring illustration (draws in) · heading · text · New item (primary) · Import calendar (secondary) | "Nothing on the clock" or "All caught up" |
@@ -173,6 +195,7 @@ Easing: `ease-out` cubic-bezier(0.2, 0, 0, 1) for entrances; `ease-in-out` cubic
 | Completion (1000ms) | 0–350ms box fills with the accent gradient and pops (scale 1.08); 100–400ms check draws; 150–650ms six sparks burst outward; 250ms title strikes through; 700–1000ms row fades and collapses |
 | Toast | Slides up 12px + fade, 240ms |
 | Unit change | Numbers and label fade up 4px, 200ms |
+| Drag | Nothing animates while dragging; the drop target and insert line switch instantly so they track the pointer. Dropping shows a "Moved to …" toast with Undo. |
 | Theme change | Whole-panel cross-fade, 240ms (View Transitions) |
 | Empty state | Fade up 6px, 240ms; ring draws 900ms |
 
@@ -184,3 +207,4 @@ Easing: `ease-out` cubic-bezier(0.2, 0, 0, 1) for entrances; `ease-in-out` cubic
 - Full keyboard use: every control is reachable; the calendar supports arrows, Home/End and PageUp/PageDown (Shift: a year); the time list supports arrows and Enter; Escape closes the innermost layer; Cmd/Ctrl+Z undoes from the toast.
 - Visible 2px focus ring on everything focusable; focus returns sensibly after closing editors, popovers and sheets, and moves to the next tile after Remove or Complete.
 - Tiles are named by their visible text, icon buttons by `aria-label` (with a matching tooltip), and countdown boxes describe the exact time left. Unit changes and selection counts are announced politely.
+- Drag and drop always has a keyboard route: the **Category** field in the item and stack editors, and **Move up / Move down** in a category's menu. Escape cancels a drag. After deleting a category, focus moves to the category that took its place.

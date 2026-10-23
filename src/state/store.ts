@@ -1,6 +1,7 @@
 import { batch, signal } from "@preact/signals";
 import { toLocalISO } from "../lib/dates";
 import * as ops from "../lib/items";
+import { moveIndex, type Category, type CategoryColor } from "../lib/categories";
 import { hasNumberToken } from "../lib/numbering";
 import { occurrenceIndex, occurrenceTitle, topUp, type RepeatEnd, type RepeatRule, type Series } from "../lib/recurrence";
 import {
@@ -9,6 +10,7 @@ import {
   loadState,
   parseCompletions,
   parseItems,
+  parseCategories,
   parsePrefs,
   parseSeries,
   type Prefs,
@@ -21,6 +23,7 @@ import { showToast } from "./toast";
 export const items = signal<Item[]>([]);
 export const completions = signal<CompletionRecord[]>([]);
 export const series = signal<Series[]>([]);
+export const categories = signal<Category[]>([]);
 export const prefs = signal<Prefs>(DEFAULT_PREFS);
 export const ready = signal(false);
 
@@ -33,6 +36,7 @@ export async function initStore(b: StorageBackend = defaultBackend()) {
     items.value = state.items;
     completions.value = state.completions;
     series.value = state.series;
+    categories.value = state.categories;
     prefs.value = state.prefs;
     ready.value = true;
   });
@@ -45,6 +49,7 @@ export async function initStore(b: StorageBackend = defaultBackend()) {
         if ("items" in changes) items.value = parseItems(changes.items);
         if ("completions" in changes) completions.value = parseCompletions(changes.completions);
         if ("series" in changes) series.value = parseSeries(changes.series);
+        if ("categories" in changes) categories.value = parseCategories(changes.categories);
         if ("prefs" in changes) prefs.value = parsePrefs(changes.prefs);
       });
     } finally {
@@ -62,9 +67,10 @@ let applyingRemote = false;
 // panels then receive items and series together, never one without the
 // other, so they can't act on half a change.
 
-let pending: Partial<Record<"items" | "completions" | "series" | "prefs", unknown>> | null = null;
+type Key = "items" | "completions" | "series" | "categories" | "prefs";
+let pending: Partial<Record<Key, unknown>> | null = null;
 
-function persist(key: "items" | "completions" | "series" | "prefs", value: unknown) {
+function persist(key: Key, value: unknown) {
   if (!pending) {
     pending = {};
     queueMicrotask(flush);
@@ -96,6 +102,11 @@ function setCompletions(next: CompletionRecord[]) {
 function setSeries(next: Series[]) {
   persist("series", next);
   series.value = next;
+}
+
+function setCategories(next: Category[]) {
+  persist("categories", next);
+  categories.value = next;
 }
 
 export function setPrefs(patch: Partial<Prefs>) {
@@ -189,6 +200,7 @@ export function makeRepeating(item: Item, rule: RepeatRule, end: RepeatEnd, titl
   const { numberFrom } = titleFields({ template: s.template.title, numberFrom: title?.numberFrom });
   if (numberFrom !== undefined) s.numberFrom = numberFrom;
   if (item.allDay) s.allDay = true;
+  if (item.categoryId) s.categoryId = item.categoryId;
   setSeries([...series.value, s]);
   return { ...item, seriesId: s.id };
 }
@@ -275,6 +287,101 @@ export function setSeriesTime(seriesId: string, time: TimeParts | null, now = ne
       ),
     );
     if (s) setSeries(series.value.map((x) => (x.id === seriesId ? withTime({ ...x, start: at(x.start) }) : x)));
+  });
+}
+
+// ── Categories ────────────────────────────────────────────────
+
+export function addCategory(name: string, color: CategoryColor): Category {
+  const category: Category = { id: crypto.randomUUID(), name: name.trim() || "Untitled", color };
+  setCategories([...categories.value, category]);
+  return category;
+}
+
+export function updateCategory(id: string, patch: Partial<Omit<Category, "id">>) {
+  setCategories(
+    categories.value.map((c) => {
+      if (c.id !== id) return c;
+      const next = { ...c, ...patch };
+      if (patch.name !== undefined) next.name = patch.name.trim() || c.name;
+      if (next.collapsed === false) delete next.collapsed;
+      return next;
+    }),
+  );
+}
+
+/** Moves a category to position `to` in the section order. */
+export function moveCategory(id: string, to: number) {
+  const from = categories.value.findIndex((c) => c.id === id);
+  if (from < 0 || from === to) return;
+  setCategories(moveIndex(categories.value, from, to));
+}
+
+/** Deletes a category; its items and series become uncategorized. Undo restores everything. */
+export function removeCategory(id: string) {
+  const index = categories.value.findIndex((c) => c.id === id);
+  const category = categories.value[index];
+  if (!category) return;
+  const itemIds = new Set(items.value.filter((i) => i.categoryId === id).map((i) => i.id));
+  const seriesIds = new Set(series.value.filter((x) => x.categoryId === id).map((x) => x.id));
+  const strip = <T extends { categoryId?: string }>(x: T): T => {
+    const { categoryId: _, ...rest } = x;
+    return rest as T;
+  };
+  batch(() => {
+    setCategories(categories.value.filter((c) => c.id !== id));
+    setItems(items.value.map((i) => (itemIds.has(i.id) ? strip(i) : i)));
+    if (seriesIds.size) setSeries(series.value.map((x) => (seriesIds.has(x.id) ? strip(x) : x)));
+  });
+  showToast({
+    message: `Deleted ${category.name}`,
+    action: {
+      label: "Undo",
+      run: () =>
+        batch(() => {
+          setCategories(moveIndex([...categories.value, category], categories.value.length, index));
+          setItems(items.value.map((i) => (itemIds.has(i.id) ? { ...i, categoryId: id } : i)));
+          if (seriesIds.size) setSeries(series.value.map((x) => (seriesIds.has(x.id) ? { ...x, categoryId: id } : x)));
+        }),
+    },
+  });
+}
+
+export type CategoryTarget = { kind: "item"; id: string } | { kind: "series"; id: string };
+
+/**
+ * Puts an item, or a whole series (every occurrence, and future ones), into
+ * a category (null = none). Shows an undo toast unless `quiet`.
+ */
+export function assignCategory(target: CategoryTarget, categoryId: string | null, quiet = false) {
+  const matches = (i: Item) => (target.kind === "item" ? i.id === target.id : i.seriesId === target.id);
+  const before = new Map(items.value.filter(matches).map((i) => [i.id, i.categoryId]));
+  const owner = target.kind === "series" ? series.value.find((x) => x.id === target.id) : undefined;
+  const ownerBefore = owner?.categoryId;
+  if (before.size === 0 && !owner) return;
+  const set = <T extends { categoryId?: string }>(x: T, id: string | null | undefined): T => {
+    const next = { ...x };
+    if (id) next.categoryId = id;
+    else delete next.categoryId;
+    return next;
+  };
+
+  batch(() => {
+    setItems(items.value.map((i) => (matches(i) ? set(i, categoryId) : i)));
+    if (owner) setSeries(series.value.map((x) => (x.id === owner.id ? set(x, categoryId) : x)));
+  });
+  if (quiet) return;
+  const name = categories.value.find((c) => c.id === categoryId)?.name;
+  showToast({
+    message: name ? `Moved to ${name}` : "Removed from category",
+    action: {
+      label: "Undo",
+      run: () =>
+        batch(() => {
+          setItems(items.value.map((i) => (before.has(i.id) ? set(i, before.get(i.id)) : i)));
+          if (owner) setSeries(series.value.map((x) => (x.id === owner.id ? set(x, ownerBefore) : x)));
+        }),
+    },
   });
 }
 

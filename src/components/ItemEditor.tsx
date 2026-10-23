@@ -6,10 +6,11 @@ import type { Item, Unit } from "../lib/types";
 import { fromYmd, nextMatchingDay, toYmd } from "../lib/calendar";
 import { hasNumberToken, renderTitle } from "../lib/numbering";
 import { occurrenceIndex, occurrenceTitle, presetOf, type Series } from "../lib/recurrence";
-import { addItem, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
+import { addItem, assignCategory, changeSeriesRule, makeRepeating, removeItems, saveItem, saveSeries, series } from "../state/store";
 import { COMPLETE_MS, editing, focusTile, neighbourOf, prefersReducedMotion, startCompletion } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { SelectCell } from "./SelectCell";
+import { CategoryField } from "./CategoryField";
 import { DatePicker } from "./DatePicker";
 import { NO_REPEAT, RepeatField, ruleOf, sameRepeat, type RepeatValue } from "./RepeatField";
 import { Icon } from "./Icon";
@@ -74,6 +75,9 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
   const latestOwn = useRef({ scope, ownTitle });
   latestOwn.current = { scope, ownTitle };
   const inSeries = !isNew && owner !== undefined;
+  const [categoryId, setCategoryId] = useState<string | null>(item.categoryId ?? null);
+  const latestCategory = useRef(categoryId);
+  latestCategory.current = categoryId;
   const onlyThis = inSeries && scope === "one";
   const ref = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -114,19 +118,27 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
     // A one-off item with {n} just reads it as the starting number.
     const firstTitle = numbered ? renderTitle(raw, 0, from) : raw;
     const title = { template: raw, numberFrom: from };
+    const cat = latestCategory.current;
+    const withCategory = (x: Item): Item => {
+      const next = { ...x };
+      if (cat) next.categoryId = cat;
+      else delete next.categoryId;
+      return next;
+    };
 
     if (isNew) {
       if (!raw) return null;
-      let created = withFields(item, { ...f, title: firstTitle }, stamp);
+      let created = withCategory(withFields(item, { ...f, title: firstTitle }, stamp));
       if (rule) created = makeRepeating(created, rule, r.end, title);
       addItem(created);
       return created;
     }
 
+    const categoryChanged = (item.categoryId ?? null) !== cat;
     if (!item.seriesId || !owner) {
-      let next = withFields(item, { ...f, title: raw ? firstTitle : item.title }, stamp);
+      let next = withCategory(withFields(item, { ...f, title: raw ? firstTitle : item.title }, stamp));
       if (rule && !item.seriesId) next = makeRepeating(next, rule, r.end, title);
-      if (rule || differs(item, next)) saveItem(next);
+      if (rule || differs(item, next) || categoryChanged) saveItem(next);
       return next;
     }
 
@@ -138,10 +150,10 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
     const seriesTitle = occurrenceTitle({ ...owner, template: { ...owner.template, title: template }, numberFrom: numbered ? from : undefined }, index);
     const own = latestOwn.current;
     const custom = own.scope === "one" && own.ownTitle.trim() !== "" && own.ownTitle.trim() !== seriesTitle;
-    let next = withFields(item, { ...f, title: custom ? own.ownTitle : seriesTitle }, stamp);
+    let next = withCategory(withFields(item, { ...f, title: custom ? own.ownTitle : seriesTitle }, stamp));
     if (custom) next = { ...next, customTitle: true };
     else delete next.customTitle;
-    if (differs(item, next) || Boolean(item.customTitle) !== Boolean(next.customTitle)) saveItem(next);
+    if (differs(item, next) || Boolean(item.customTitle) !== Boolean(next.customTitle) || categoryChanged) saveItem(next);
 
     if (repeatChanged) {
       // Restarting from this occurrence: it keeps its number.
@@ -153,6 +165,8 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
     } else if (template !== owner.template.title || next.type !== owner.template.type || (numbered && from !== owner.numberFrom)) {
       saveSeries(item.seriesId, { title: template, type: next.type, numberFrom: from });
     }
+    // A category belongs to the whole series.
+    if (categoryChanged && rule) assignCategory({ kind: "series", id: item.seriesId }, cat, true);
     return next;
   };
 
@@ -224,6 +238,7 @@ export function EditorRow({ item, isNew, unit, now }: Props) {
         )}
 
         <TypeToggle value={fields.type} onChange={(v) => set("type", v)} />
+        <CategoryField value={categoryId} onChange={setCategoryId} />
 
         <div class="editor__when">
           {/* Custom dates replace the single date with chips (in the repeat section). */}

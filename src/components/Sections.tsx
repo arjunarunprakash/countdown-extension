@@ -3,7 +3,7 @@ import { useId, useState } from "preact/hooks";
 import { formatItemDate, formatShortDateTime } from "../lib/dates";
 import type { Prefs } from "../lib/storage";
 import type { Item, Unit } from "../lib/types";
-import { clearCompleted, prefs, removeItems, setPrefs, uncompleteItem } from "../state/store";
+import { categories, clearCompleted, prefs, removeItems, setPrefs, uncompleteItem } from "../state/store";
 import { Icon } from "./Icon";
 import { ItemRow } from "./ItemRow";
 import { SelectCell } from "./SelectCell";
@@ -93,11 +93,16 @@ export function CompletedSection({ items, now }: { items: Item[]; now: number })
   );
 }
 
+function completedCategoryClass(categoryId: string | undefined) {
+  const c = categoryId ? categories.value.find((x) => x.id === categoryId) : undefined;
+  return c ? ` row--cat category--${c.color}` : "";
+}
+
 function CompletedRow({ item, now }: { item: Item; now: number }) {
   const completedAt = formatItemDate(new Date(item.completedAt!));
   const original = formatShortDateTime(new Date(item.dateTime), item.allDay, new Date(now));
   return (
-    <li class="row grid-row row--completed">
+    <li class={`row grid-row row--completed${completedCategoryClass(item.categoryId)}`}>
       <SelectCell />
       <div class="countdown countdown--completed" role="img" aria-label="Completed">
         <Icon name="check" />

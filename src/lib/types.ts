@@ -19,6 +19,8 @@ export interface Item {
   seriesId?: string;
   /** This occurrence was renamed on its own; series renames leave its title alone. */
   customTitle?: boolean;
+  /** Category (section) the item belongs to. */
+  categoryId?: string;
   /** Set when the user marks the item done; completed items leave the list. */
   completedAt?: string;
 }

@@ -4,6 +4,7 @@ A calm, minimal Chrome extension that keeps your deadlines and event start times
 
 - Add deadlines (**Due**) and events (**Starts**); edit everything inline
 - Live countdowns in days, hours, minutes or seconds
+- Colour-coded categories (a course, a project, a trip); drag tiles and stacks between them
 - Repeating items, hand-picked dates, weekday schedules and numbered titles ("Chapter {n} Homework")
 - Import from `.ics` files and calendar links (Google, Apple, Outlook), with a preview and duplicate detection
 - Export to Google Calendar or any calendar app via `.ics`
@@ -46,16 +47,20 @@ This writes the unpacked extension to `dist/`.
 | Repeat an item | In the editor, **Repeat**: daily, weekdays, weekly, weekly on chosen days, every 2 weeks, monthly, yearly, or **Custom dates…**. Then choose when it ends. |
 | Number repeating titles | With Repeat set, **# Number each occurrence** (select the "1" in "Chapter 1" first to replace it). |
 | Manage a repeating stack | Click the stack to rename the series, set one **Time** for every occurrence, change its rule, or complete/remove occurrences one at a time or all at once. Each row shows the occurrence's title and date. The pencil on an occurrence edits just that one (its date, time, or its own title via **Rename: Only this one**). |
+| Add a category | The **▾** next to **+** → **New category**. Name it, pick one of eight colours, press Enter. The menu also offers **New item in…** each category. |
+| Put items in a category | Drag a tile or a whole stack onto a category's section (drop on **Other** to take it out). Or use the **Category** field in the item or stack editor. New items made with a category's own **+** start in it. |
+| Reorder categories | Drag a category's header up or down, or use **Move up / Move down** in its **⋯** menu. |
+| Rename, recolour or delete a category | Its **⋯** menu. Deleting moves its items to Other, with Undo. Click a category's name to collapse it; a collapsed category shows its count and when its next item is due. |
 | Undo | Every remove, complete, clear and import shows **Undo** for 5 seconds (or press Cmd/Ctrl+Z). |
 | Export | **Export** (header) → tick items → Google Calendar, Download .ics, or Remove. |
-| Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, then **Add selected**. |
+| Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, optionally choose a **Category** for everything you're adding, then **Add selected**. |
 | Switch theme | The last header button cycles System → Light → Dark. |
 
 **Calendar links:** in Google Calendar, use *Settings › your calendar › Secret address in iCal format*; in Apple Calendar, share the calendar as a Public Calendar and copy its `webcal://` link.
 
 ### Keyboard
 
-Everything works without a mouse. Tab moves between controls; Enter or Space activates. In the calendar, arrows move by day or week, Home/End to the week's ends, PageUp/PageDown by month (with Shift: by year). In the time field, arrows move through the list and Enter picks. Escape closes the innermost popover, editor or sheet. Cmd/Ctrl+Z undoes while the toast is showing.
+Everything works without a mouse. Tab moves between controls; Enter or Space activates. In the calendar, arrows move by day or week, Home/End to the week's ends, PageUp/PageDown by month (with Shift: by year). In the time field, arrows move through the list and Enter picks. Escape closes the innermost popover, editor or sheet, and cancels a drag. Cmd/Ctrl+Z undoes while the toast is showing. Dragging is mouse-only; the **Category** field in editors and **Move up / Move down** in a category's menu do the same jobs from the keyboard.
 
 ## Privacy and permissions
 
@@ -83,10 +88,11 @@ src/sidepanel/     panel page, entry point and root component
 src/components/    UI components (Preact)
 src/hooks/         shared hooks: dismissal, presence animations, sheet height
 src/lib/           pure logic, unit-tested: dates, parsing, calendar, countdowns,
-                   recurrence, numbering, time zones, .ics import/export,
-                   duplicate detection, storage validation, positioning
-src/state/         signals and actions: items, series, prefs, selection,
-                   import, clock, theme, toast
+                   recurrence, numbering, categories, time zones,
+                   .ics import/export, duplicate detection, storage
+                   validation, positioning
+src/state/         signals and actions: items, series, categories, prefs,
+                   selection, import, drag and drop, clock, theme, toast
 src/styles/        tokens.css (every design token), base.css, components.css
 tests/             Vitest unit tests
 ```
@@ -94,14 +100,14 @@ tests/             Vitest unit tests
 ### How it fits together
 
 - **UI:** Preact components with `@preact/signals` for state. Components read signals directly, so only what changed re-renders.
-- **Data model:** `Item` (title, type, `dateTime` as ISO with UTC offset, optional all-day, notes, source, `seriesId`, completion) and `Series` (rule, end, title template, numbering, next index to generate, optional source time zone). Completions are also stored as separate records so stats survive removal.
+- **Data model:** `Item` (title, type, `dateTime` as ISO with UTC offset, optional all-day, notes, source, `seriesId`, completion) and `Series` (rule, end, title template, numbering, next index to generate, optional source time zone). Completions are also stored as separate records so stats survive removal. `Category` (name, colour from a fixed palette, collapsed) lives in an ordered list; items and series point to one by `categoryId`, and a series passes it on to every occurrence it generates.
 - **Repeating items:** a series keeps its next 6 occurrences generated (deterministic ids), topping up as they are completed or pass. Rules are a subset of RRULE plus hand-picked dates.
 - **Storage:** `chrome.storage.local` with a versioned schema; everything read back is validated. Writes from one action are coalesced into a single write so other open panels never see half a change, and panels never write back in reaction to another panel's change.
 - **Floating UI:** popovers, lists and tooltips use the browser's top layer (Popover API), so the glass layering can't hide them.
 
 ### Testing
 
-`npm test` runs 240+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
+`npm test` runs 250+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, categories (grouping, order, assignment, undo), `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
 
 Accessibility is checked with axe-core against every main screen in light and dark mode (WCAG 2.2 AA: 0 violations).
 
@@ -124,6 +130,10 @@ Accessibility is checked with axe-core against every main screen in light and da
 - **Bottom sections.** Two collapsible sections sit below the upcoming list, and each remembers whether it was open:
   - **Overdue:** items whose time has passed without being completed. Due items show "Overdue" in red; Starts items show "Started". Started events go here rather than in Completed so the completion stats only count things you actually checked off.
   - **Completed:** newest first, each showing the exact time it was completed and its original date. **Mark as not done** moves an item back to the list and drops its completion record. **Clear** removes completed items from the list but keeps their records for stats. Both can be undone. The list shows 20 at a time.
+- **Categories.** With no categories the panel is one list, as before. Once you add one, the upcoming list splits into sections in your chosen order, each sorted soonest first, with uncategorised items under **Other** at the end. Overdue and Completed stay as single lists across all categories, with each row keeping its category's colour.
+  - A category colours its rows' countdown boxes and adds a stripe to each tile. The eight colours are tuned so every one meets WCAG AA in both themes; there's no free colour picker because arbitrary colours can't guarantee that.
+  - Moving a stack moves the whole series, including occurrences generated later. A category belongs to the whole series, so changing it from any occurrence's editor moves them all.
+  - Categories aren't exported to .ics; calendar apps have no shared field for them.
 - **Per-item units.** Clicking a countdown box cycles that item's unit (Days → Hours → Minutes → Seconds, then back to the header's unit). A box in its own unit shows a small label. These choices are for quick checks and last for the session; the header unit stays the default. The clock ticks every second whenever any box shows seconds.
 - **Live countdowns.** Click the unit label (**Days → Hours → Minutes → Seconds**) to change every box at once; the choice is remembered. Boxes update every second in Seconds mode and on each minute boundary otherwise. Items move to Overdue the moment their time passes.
 - **Countdown values.** Countdowns round down to whole units. Under one unit, the box shows `<1`. Values up to 9,999 show in full with commas; larger values are abbreviated (`12.4K`, `2.6M`). The tooltip shows the exact time left.

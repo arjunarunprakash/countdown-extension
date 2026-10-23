@@ -201,8 +201,8 @@ async function fetchCalendar(url: URL, permission: Promise<boolean>) {
   load(text, url.hostname);
 }
 
-/** Adds the selected, non-duplicate candidates to the list. */
-export function commitImport() {
+/** Adds the selected, non-duplicate candidates to the list, optionally into a category. */
+export function commitImport(categoryId: string | null = null) {
   const d = importDraft.value;
   if (!d) return;
   const keys = selected.value;
@@ -218,5 +218,6 @@ export function commitImport() {
       if (c.series) newSeries.push(c.series);
     }
   }
-  addImported(newItems, newSeries, count);
+  const inCategory = <T extends { categoryId?: string }>(x: T): T => (categoryId ? { ...x, categoryId } : x);
+  addImported(newItems.map(inCategory), newSeries.map(inCategory), count);
 }

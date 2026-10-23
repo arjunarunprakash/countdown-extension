@@ -82,6 +82,27 @@
     0 2px 6px light-dark(rgb(20 24 40 / 0.06), rgb(0 0 0 / 0.3)),
     0 16px 40px -12px light-dark(rgb(20 24 40 / 0.28), rgb(0 0 0 / 0.65));
 
+  /* ── Category palette ────────────────────────────────────────
+     Each color is checked for AA as countdown text on its own tint over the
+     glass at the gradient's worst case (see DESIGN.md). Red is reserved
+     for overdue and destructive states, so it isn't offered. */
+  --cat-indigo: light-dark(#3451d1, #a3b2ff);
+  --cat-indigo-subtle: light-dark(rgb(52 81 209 / 0.1), rgb(163 178 255 / 0.14));
+  --cat-violet: light-dark(#7438c4, #c8a8ff);
+  --cat-violet-subtle: light-dark(rgb(116 56 196 / 0.1), rgb(200 168 255 / 0.14));
+  --cat-pink: light-dark(#a0225e, #ff9fcd);
+  --cat-pink-subtle: light-dark(rgb(160 34 94 / 0.1), rgb(255 159 205 / 0.14));
+  --cat-orange: light-dark(#954300, #ffb277);
+  --cat-orange-subtle: light-dark(rgb(149 67 0 / 0.1), rgb(255 178 119 / 0.14));
+  --cat-amber: light-dark(#735400, #f0cc62);
+  --cat-amber-subtle: light-dark(rgb(115 84 0 / 0.1), rgb(240 204 98 / 0.14));
+  --cat-green: light-dark(#22672e, #90d89c);
+  --cat-green-subtle: light-dark(rgb(34 103 46 / 0.1), rgb(144 216 156 / 0.14));
+  --cat-teal: light-dark(#09616b, #80d4de);
+  --cat-teal-subtle: light-dark(rgb(9 97 107 / 0.1), rgb(128 212 222 / 0.14));
+  --cat-slate: light-dark(#4c5666, #b9c2cf);
+  --cat-slate-subtle: light-dark(rgb(76 86 102 / 0.1), rgb(185 194 207 / 0.14));
+
   /* ── Typography ──────────────────────────────────────────── */
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* size / line-height pairs on a 4px baseline */

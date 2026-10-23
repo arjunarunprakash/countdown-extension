@@ -44,6 +44,8 @@ export interface Series {
   nextIndex: number;
   /** iCalendar UID when imported; kept for duplicate detection and export. */
   uid?: string;
+  /** Category for every occurrence, including ones generated later. */
+  categoryId?: string;
   /**
    * Set when the title template numbers its occurrences ("Chapter {n}"):
    * the number given to occurrence 0.
@@ -300,6 +302,7 @@ export function topUp(
             seriesId: series.id,
           };
           if (series.allDay) item.allDay = true;
+          if (series.categoryId) item.categoryId = series.categoryId;
           if (series.template.notes) item.notes = series.template.notes;
           added.push(item);
         }

@@ -57,6 +57,14 @@ const paths = {
       <path d="m13.5 6.5 4 4" />
     </>
   ),
+  folder: <path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z" />,
+  more: (
+    <>
+      <circle cx="6" cy="12" r="1.25" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" />
+      <circle cx="18" cy="12" r="1.25" fill="currentColor" />
+    </>
+  ),
   link: (
     <>
       <path d="M10 13.5a4.5 4.5 0 0 0 6.36.04l2.6-2.6a4.5 4.5 0 0 0-6.37-6.36l-1.1 1.1" />

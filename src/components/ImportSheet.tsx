@@ -2,6 +2,7 @@ import { useId, useRef, useState } from "preact/hooks";
 import { useSheetHeight } from "../hooks/useSheetHeight";
 import { commitImport, discardImport, importDraft, importFile, importStatus, importUrl, selectableImportKeys } from "../state/importer";
 import { exitSelection, selected } from "../state/selection";
+import { CategoryField } from "./CategoryField";
 import { Icon } from "./Icon";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  */
 export function ImportSheet({ state, dragging }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   useSheetHeight(ref);
   const draft = importDraft.value;
   const status = importStatus.value;
@@ -36,7 +38,14 @@ export function ImportSheet({ state, dragging }: Props) {
         )}
       </div>
 
-      {draft ? <Summary /> : <Picker dragging={dragging} />}
+      {draft ? (
+        <>
+          <Summary />
+          <CategoryField value={categoryId} onChange={setCategoryId} />
+        </>
+      ) : (
+        <Picker dragging={dragging} />
+      )}
 
       {status.kind === "loading" && (
         <p class="sheet__status" role="status">
@@ -60,7 +69,7 @@ export function ImportSheet({ state, dragging }: Props) {
             class="button button--primary"
             disabled={n === 0}
             onClick={() => {
-              commitImport();
+              commitImport(categoryId);
               exitSelection();
             }}
           >

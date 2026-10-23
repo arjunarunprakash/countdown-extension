@@ -87,6 +87,13 @@ describe("importing a file", () => {
     expect(series.value).toEqual([]);
   });
 
+  it("can import everything into a category", async () => {
+    await importFile(file(ics(ev("b", "20300310T170000Z", "Final"), ev("d", "20300101T090000Z", "Lecture", ["RRULE:FREQ=WEEKLY;COUNT=3"]))));
+    commitImport("course");
+    expect(items.value.filter((i) => i.title !== "Midterm").every((i) => i.categoryId === "course")).toBe(true);
+    expect(series.value[0]!.categoryId).toBe("course");
+  });
+
   it("only commits what is still selected", async () => {
     await importFile(file(ics(ev("b", "20300310T170000Z", "Final"), ev("x", "20300311T170000Z", "Quiz"))));
     const quiz = importDraft.value!.candidates.find((c) => c.kind === "item" && c.item.title === "Quiz")!;
