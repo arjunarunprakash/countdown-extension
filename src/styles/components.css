@@ -1656,6 +1656,21 @@ button.tile:active {
   line-height: var(--leading-xs);
 }
 
+/* Spans both columns; the chevron sits at the far right. */
+.sheet-action--wide {
+  grid-column: 1 / -1;
+}
+
+.sheet-action--wide .sheet-action__text {
+  flex: 1;
+}
+
+.sheet-action--wide > .icon:last-child {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-subtle);
+}
+
 .sheet-action--danger .icon,
 .sheet-action--danger .sheet-action__label {
   color: var(--color-danger);

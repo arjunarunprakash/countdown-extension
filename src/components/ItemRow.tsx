@@ -4,7 +4,7 @@ import { describeEnd, describeRule } from "../lib/recurrence";
 import { draftIndex } from "../state/importer";
 import { isSelecting, selected, selectionMode, seriesKey, toggleSelected } from "../state/selection";
 import { startDragOnPress, type DragSubject } from "../state/drag";
-import { assignCategory, categories, series, type CategoryTarget } from "../state/store";
+import { assignCategory, categories, categoryTargetFor, series, type CategoryTarget } from "../state/store";
 import { completing, editing } from "../state/ui";
 import { CountdownBox } from "./CountdownBox";
 import { Icon } from "./Icon";
@@ -121,7 +121,7 @@ function SingleRow({ item, unit, now, past }: { item: Item; unit: Unit; now: num
         selected={sel.selKey !== undefined && !sel.duplicate && selected.value.has(item.id)}
         badge={sel.badge}
         onOpen={() => (isSelecting.value ? sel.toggle() : (editing.value = { kind: "item", id: item.id }))}
-        onPointerDown={sel.badge ? undefined : dragToCategory({ kind: "item", id: item.id }, item.title, item.categoryId)}
+        onPointerDown={sel.badge ? undefined : dragToCategory(categoryTargetFor(item, past), item.title, item.categoryId)}
       />
     </li>
   );

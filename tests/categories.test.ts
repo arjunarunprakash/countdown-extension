@@ -10,6 +10,7 @@ import {
   addItem,
   assignCategory,
   categories,
+  categoryTargetFor,
   ensureOccurrences,
   initStore,
   items,
@@ -115,5 +116,34 @@ describe("category actions", () => {
     assignCategory({ kind: "item", id: "x" }, null);
     expect(items.value[0]!.categoryId).toBeUndefined();
     expect(toast.value?.message).toBe("Removed from category");
+  });
+});
+
+describe("moving several at once", () => {
+  it("moves items and whole series together, with one undo", () => {
+    const cs = addCategory("CS", "violet");
+    addItem(item("a", 1));
+    addItem(item("b", 2, { categoryId: cs.id }));
+    addItem(makeRepeating(item("first", 3, { title: "Lab" }), presetRule("weekly"), { type: "never" }));
+    ensureOccurrences(t);
+    const sid = series.value[0]!.id;
+    const math = addCategory("Math", "teal");
+
+    assignCategory([{ kind: "item", id: "a" }, { kind: "item", id: "b" }, { kind: "series", id: sid }], math.id);
+    expect(items.value.every((i) => i.categoryId === math.id)).toBe(true);
+    expect(series.value[0]!.categoryId).toBe(math.id);
+    expect(toast.value?.message).toBe("Moved 3 items to Math");
+
+    toast.value!.action!.run();
+    expect(items.value.find((i) => i.id === "a")!.categoryId).toBeUndefined();
+    expect(items.value.find((i) => i.id === "b")!.categoryId).toBe(cs.id);
+    expect(series.value[0]!.categoryId).toBeUndefined();
+  });
+
+  it("an upcoming occurrence stands for its series; an overdue one moves alone", () => {
+    const occ = item("o", 1, { seriesId: "s1" });
+    expect(categoryTargetFor(occ)).toEqual({ kind: "series", id: "s1" });
+    expect(categoryTargetFor(occ, true)).toEqual({ kind: "item", id: "o" });
+    expect(categoryTargetFor(item("x", 1))).toEqual({ kind: "item", id: "x" });
   });
 });

@@ -350,15 +350,25 @@ export function removeCategory(id: string) {
 export type CategoryTarget = { kind: "item"; id: string } | { kind: "series"; id: string };
 
 /**
- * Puts an item, or a whole series (every occurrence, and future ones), into
- * a category (null = none). Shows an undo toast unless `quiet`.
+ * What moving this item to a category should move: an upcoming occurrence
+ * stands for its whole series; a past one (overdue) moves alone.
  */
-export function assignCategory(target: CategoryTarget, categoryId: string | null, quiet = false) {
-  const matches = (i: Item) => (target.kind === "item" ? i.id === target.id : i.seriesId === target.id);
+export function categoryTargetFor(item: Item, past = false): CategoryTarget {
+  return item.seriesId && !past ? { kind: "series", id: item.seriesId } : { kind: "item", id: item.id };
+}
+
+/**
+ * Puts items and whole series (every occurrence, and future ones) into a
+ * category (null = none), as one change. Shows an undo toast unless `quiet`.
+ */
+export function assignCategory(target: CategoryTarget | readonly CategoryTarget[], categoryId: string | null, quiet = false) {
+  const targets = Array.isArray(target) ? target : [target as CategoryTarget];
+  const itemIds = new Set(targets.filter((t) => t.kind === "item").map((t) => t.id));
+  const seriesIds = new Set(targets.filter((t) => t.kind === "series").map((t) => t.id));
+  const matches = (i: Item) => itemIds.has(i.id) || (i.seriesId !== undefined && seriesIds.has(i.seriesId));
   const before = new Map(items.value.filter(matches).map((i) => [i.id, i.categoryId]));
-  const owner = target.kind === "series" ? series.value.find((x) => x.id === target.id) : undefined;
-  const ownerBefore = owner?.categoryId;
-  if (before.size === 0 && !owner) return;
+  const owners = new Map(series.value.filter((x) => seriesIds.has(x.id)).map((x) => [x.id, x.categoryId]));
+  if (before.size === 0 && owners.size === 0) return;
   const set = <T extends { categoryId?: string }>(x: T, id: string | null | undefined): T => {
     const next = { ...x };
     if (id) next.categoryId = id;
@@ -368,18 +378,20 @@ export function assignCategory(target: CategoryTarget, categoryId: string | null
 
   batch(() => {
     setItems(items.value.map((i) => (matches(i) ? set(i, categoryId) : i)));
-    if (owner) setSeries(series.value.map((x) => (x.id === owner.id ? set(x, categoryId) : x)));
+    if (owners.size) setSeries(series.value.map((x) => (owners.has(x.id) ? set(x, categoryId) : x)));
   });
   if (quiet) return;
   const name = categories.value.find((c) => c.id === categoryId)?.name;
+  // A stack counts once, however many occurrences it has.
+  const count = targets.length > 1 ? `${targets.length} items ` : "";
   showToast({
-    message: name ? `Moved to ${name}` : "Removed from category",
+    message: name ? `Moved ${count}to ${name}` : count ? `Moved ${count}to Other` : "Removed from category",
     action: {
       label: "Undo",
       run: () =>
         batch(() => {
           setItems(items.value.map((i) => (before.has(i.id) ? set(i, before.get(i.id)) : i)));
-          if (owner) setSeries(series.value.map((x) => (x.id === owner.id ? set(x, ownerBefore) : x)));
+          if (owners.size) setSeries(series.value.map((x) => (owners.has(x.id) ? set(x, owners.get(x.id)) : x)));
         }),
     },
   });

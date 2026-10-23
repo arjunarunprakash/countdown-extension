@@ -48,11 +48,11 @@ This writes the unpacked extension to `dist/`.
 | Number repeating titles | With Repeat set, **# Number each occurrence** (select the "1" in "Chapter 1" first to replace it). |
 | Manage a repeating stack | Click the stack to rename the series, set one **Time** for every occurrence, change its rule, or complete/remove occurrences one at a time or all at once. Each row shows the occurrence's title and date. The pencil on an occurrence edits just that one (its date, time, or its own title via **Rename: Only this one**). |
 | Add a category | The **▾** next to **+** → **New category**. Name it, pick one of eight colours, press Enter. The menu also offers **New item in…** each category. |
-| Put items in a category | Drag a tile or a whole stack onto a category's section (drop on **Other** to take it out). Or use the **Category** field in the item or stack editor. New items made with a category's own **+** start in it. |
+| Put items in a category | Drag a tile or a whole stack onto a category's section (drop on **Other** to take it out). Or use the **Category** field in the item or stack editor; to move several at once, tick them under **Export** and choose **Move to category**. New items made with a category's own **+** start in it. |
 | Reorder categories | Drag a category's header up or down, or use **Move up / Move down** in its **⋯** menu. |
 | Rename, recolour or delete a category | Its **⋯** menu. Deleting moves its items to Other, with Undo. Click a category's name to collapse it; a collapsed category shows its count and when its next item is due. |
 | Undo | Every remove, complete, clear and import shows **Undo** for 5 seconds (or press Cmd/Ctrl+Z). |
-| Export | **Export** (header) → tick items → Google Calendar, Download .ics, or Remove. |
+| Export, or act on several at once | **Export** (header) → tick items → Google Calendar, Download .ics, Remove, or **Move to category** (shown once you have categories). |
 | Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, optionally choose a **Category** for everything you're adding, then **Add selected**. |
 | Switch theme | The last header button cycles System → Light → Dark. |
 
@@ -132,7 +132,7 @@ Accessibility is checked with axe-core against every main screen in light and da
   - **Completed:** newest first, each showing the exact time it was completed and its original date. **Mark as not done** moves an item back to the list and drops its completion record. **Clear** removes completed items from the list but keeps their records for stats. Both can be undone. The list shows 20 at a time.
 - **Categories.** With no categories the panel is one list, as before. Once you add one, the upcoming list splits into sections in your chosen order, each sorted soonest first, with uncategorised items under **Other** at the end. Overdue and Completed stay as single lists across all categories, with each row keeping its category's colour.
   - A category colours its rows' countdown boxes and adds a stripe to each tile. The eight colours are tuned so every one meets WCAG AA in both themes; there's no free colour picker because arbitrary colours can't guarantee that.
-  - Moving a stack moves the whole series, including occurrences generated later. A category belongs to the whole series, so changing it from any occurrence's editor moves them all.
+  - Moving a stack moves the whole series, including occurrences generated later. A category belongs to the whole series, so changing it from any occurrence (its editor, dragging it, or Move to category) moves them all. Overdue occurrences are the exception: they move on their own.
   - Categories aren't exported to .ics; calendar apps have no shared field for them.
 - **Per-item units.** Clicking a countdown box cycles that item's unit (Days → Hours → Minutes → Seconds, then back to the header's unit). A box in its own unit shows a small label. These choices are for quick checks and last for the session; the header unit stays the default. The clock ticks every second whenever any box shows seconds.
 - **Live countdowns.** Click the unit label (**Days → Hours → Minutes → Seconds**) to change every box at once; the choice is remembered. Boxes update every second in Seconds mode and on each minute boundary otherwise. Items move to Overdue the moment their time passes.
