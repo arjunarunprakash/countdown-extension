@@ -8,7 +8,8 @@ A calm, minimal Chrome extension that keeps your deadlines and event start times
 - Repeating items, hand-picked dates, weekday schedules and numbered titles ("Chapter {n} Homework")
 - Import from `.ics` files and calendar links (Google, Apple, Outlook), with a preview and duplicate detection
 - Export to Google Calendar or any calendar app via `.ics`
-- Light and dark themes with a frosted-glass look; keyboard and screen-reader friendly
+- Seven colour themes in light and dark, with a frosted-glass look; keyboard and screen-reader friendly
+- A toolbar icon that matches your theme and Chrome's light or dark mode, and (optionally) sweeps down as your next item gets closer
 
 Design tokens, components and motion are documented in [DESIGN.md](DESIGN.md).
 
@@ -54,7 +55,7 @@ This writes the unpacked extension to `dist/`.
 | Undo | Every remove, complete, clear and import shows **Undo** for 5 seconds (or press Cmd/Ctrl+Z). |
 | Export, or act on several at once | **Export** (header) → tick items → Google Calendar, Download .ics, Remove, or **Move to category** (shown once you have categories). |
 | Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, optionally choose a **Category** for everything you're adding, then **Add selected**. |
-| Switch theme | The last header button cycles System → Light → Dark. |
+| Change the look | The last header button opens **Appearance**: **Mode** (System, Light or Dark), **Colour** (seven themes), and **Time left on toolbar icon**. |
 
 **Calendar links:** in Google Calendar, use *Settings › your calendar › Secret address in iCal format*; in Apple Calendar, share the calendar as a Public Calendar and copy its `webcal://` link.
 
@@ -64,7 +65,7 @@ Everything works without a mouse. Tab moves between controls; Enter or Space act
 
 ## Privacy and permissions
 
-Countdown stores everything locally in `chrome.storage.local`; there is no account, server or analytics. It requests only `sidePanel` and `storage`. When you fetch a calendar link, Chrome asks for permission to read that site (and its subdomains, because calendar servers redirect); nothing else on the web is accessed. Exports are files you download.
+Countdown stores everything locally in `chrome.storage.local`; there is no account, server or analytics. It requests `sidePanel`, `storage`, `alarms` (to redraw the toolbar icon on time) and `offscreen` (a hidden page that tells the toolbar icon whether Chrome is in dark mode); none of these shows a warning or prompt at install. When you fetch a calendar link, Chrome asks for permission to read that site (and its subdomains, because calendar servers redirect); nothing else on the web is accessed. Exports are files you download.
 
 ## Development
 
@@ -87,14 +88,15 @@ Countdown stores everything locally in `chrome.storage.local`; there is no accou
 
 ```
 public/            manifest.json and icons (copied to dist/ as-is)
-src/background/    MV3 service worker: the toolbar icon opens the side panel
+src/background/    MV3 service worker: opens the side panel and draws the toolbar icon
+src/offscreen/     hidden page that reports Chrome's light/dark mode to the worker
 src/sidepanel/     panel page, entry point and root component
 src/components/    UI components (Preact)
 src/hooks/         shared hooks: dismissal, presence animations, sheet height
 src/lib/           pure logic, unit-tested: dates, parsing, calendar, countdowns,
                    recurrence, numbering, categories, time zones,
                    .ics import/export, duplicate detection, storage
-                   validation, positioning
+                   validation, positioning, palettes, toolbar icon
 src/state/         signals and actions: items, series, categories, prefs,
                    selection, import, drag and drop, clock, theme, toast
 src/styles/        tokens.css (every design token), base.css, components.css
@@ -107,6 +109,8 @@ tests/             Vitest unit tests
 - **Data model:** `Item` (title, type, `dateTime` as ISO with UTC offset, optional all-day, notes, source, `seriesId`, completion) and `Series` (rule, end, title template, numbering, next index to generate, optional source time zone). Completions are also stored as separate records so stats survive removal. `Category` (name, colour from a fixed palette, collapsed) lives in an ordered list; items and series point to one by `categoryId`, and a series passes it on to every occurrence it generates.
 - **Repeating items:** a series keeps its next 6 occurrences generated (deterministic ids), topping up as they are completed or pass. Rules are a subset of RRULE plus hand-picked dates.
 - **Storage:** `chrome.storage.local` with a versioned schema; everything read back is validated. Writes from one action are coalesced into a single write so other open panels never see half a change, and panels never write back in reaction to another panel's change.
+- **Themes:** `<html data-palette>` swaps a handful of `--p-*` colours in `tokens.css`; every accent-derived colour is computed from them with `color-mix()`. `src/lib/palettes.ts` holds the same colours for the toolbar icon and the swatches, and a test keeps the two identical.
+- **Toolbar icon:** the service worker redraws it (canvas, 16 and 32px) whenever items, the theme or Chrome's light/dark mode change, and at the time the badge or sweep would next visibly change (`chrome.alarms`). It reads everything from storage on each event, since workers stop when idle.
 - **Floating UI:** popovers, lists and tooltips use the browser's top layer (Popover API), so the glass layering can't hide them.
 
 ### Testing
@@ -134,6 +138,8 @@ Accessibility is checked with axe-core against every main screen in light and da
 - **Bottom sections.** Two collapsible sections sit below the upcoming list, and each remembers whether it was open:
   - **Overdue:** items whose time has passed without being completed. Due items show "Overdue" in red; Starts items show "Started". Started events go here rather than in Completed so the completion stats only count things you actually checked off.
   - **Completed:** newest first, each showing the exact time it was completed and its original date. **Mark as not done** moves an item back to the list and drops its completion record. **Clear** removes completed items from the list but keeps their records for stats. Both can be undone. The list shows 20 at a time.
+- **Appearance.** Mode follows the system by default; System's label says what it currently resolves to. Seven colour themes: Indigo (default), Lagoon, Fern, Orchid, Dune, Graphite and Clear. Each was measured before it went in: countdown numbers stay above 4.5:1 over the worst case of the theme's own background glows, button text passes on its gradient, and the accent stays well away from the red that means Overdue. Dune (amber) needed two adjustments for that: dark text on its buttons, and Overdue in crimson instead of red. Clear uses solid surfaces with no glass; every theme switches to solid surfaces automatically when the system's Reduce transparency setting is on.
+- **Toolbar icon.** The icon is the Sweep mark in your colour theme, drawn light or dark to match Chrome's toolbar. With **Time left on toolbar icon** on (the default), its wedge shows the share of time left until your next upcoming item, measured from when you added it (or, for a repeating item, from its previous occurrence), with a badge such as `3d`, `5h` or `45m` and a hover title like "Assignment 3 due in 2 days". It never shrinks to nothing, so "almost due" stays visible. Turn it off in Appearance if a shrinking countdown is stressful; the icon then stays still with no badge. The store and extensions-page icons are fixed Indigo images.
 - **Categories.** With no categories the panel is one list, as before. Once you add one, the upcoming list splits into sections in your chosen order, each sorted soonest first, with uncategorised items under **Other** at the end. Overdue and Completed stay as single lists across all categories, with each row keeping its category's colour.
   - A category colours its rows' countdown boxes and adds a stripe to each tile. The eight colours are tuned so every one meets WCAG AA in both themes; there's no free colour picker because arbitrary colours can't guarantee that.
   - Moving a stack moves the whole series, including occurrences generated later. A category belongs to the whole series, so changing it from any occurrence (its editor, dragging it, or Move to category) moves them all. Overdue occurrences are the exception: they move on their own.

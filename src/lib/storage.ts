@@ -1,5 +1,6 @@
 import { MAX_CUSTOM_DATES, type RepeatEnd, type RepeatRule, type Series } from "./recurrence";
 import { CATEGORY_COLORS, MAX_CATEGORY_NAME, type Category } from "./categories";
+import { DEFAULT_PALETTE, PALETTE_IDS, type PaletteId } from "./palettes";
 import { isValidTimeZone } from "./timezone";
 import type { CompletionRecord, Item, Unit } from "./types";
 
@@ -10,6 +11,10 @@ export type Theme = "system" | "light" | "dark";
 export interface Prefs {
   unit: Unit;
   theme: Theme;
+  /** Colour theme. */
+  palette: PaletteId;
+  /** The toolbar icon's sweep shows the time left until the next item. */
+  liveIcon: boolean;
   overdueCollapsed: boolean;
   completedCollapsed: boolean;
 }
@@ -17,6 +22,8 @@ export interface Prefs {
 export const DEFAULT_PREFS: Prefs = {
   unit: "days",
   theme: "system",
+  palette: DEFAULT_PALETTE,
+  liveIcon: true,
   overdueCollapsed: false,
   completedCollapsed: true,
 };
@@ -139,6 +146,8 @@ export function parsePrefs(v: unknown): Prefs {
   return {
     unit: UNITS_SET.has(o.unit) ? (o.unit as Unit) : DEFAULT_PREFS.unit,
     theme: THEMES.has(o.theme) ? (o.theme as Theme) : DEFAULT_PREFS.theme,
+    palette: PALETTE_IDS.has(o.palette as string) ? (o.palette as PaletteId) : DEFAULT_PREFS.palette,
+    liveIcon: bool(o.liveIcon, DEFAULT_PREFS.liveIcon),
     // Before the Overdue/Completed split, the single bottom section was "pastCollapsed".
     overdueCollapsed: bool(o.overdueCollapsed, bool(o.pastCollapsed, DEFAULT_PREFS.overdueCollapsed)),
     completedCollapsed: bool(o.completedCollapsed, DEFAULT_PREFS.completedCollapsed),

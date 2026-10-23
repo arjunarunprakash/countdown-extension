@@ -103,6 +103,8 @@ describe("parsePrefs", () => {
       unit: "hours",
     });
     expect(parsePrefs({ unit: "weeks", theme: "dark" })).toMatchObject({ unit: "days", theme: "dark" });
+    expect(parsePrefs({ palette: "lagoon", liveIcon: false })).toMatchObject({ palette: "lagoon", liveIcon: false });
+    expect(parsePrefs({ palette: "neon", liveIcon: "no" })).toMatchObject({ palette: "indigo", liveIcon: true });
   });
 
   it("migrates the old single Past section's collapsed state to Overdue", () => {

@@ -7,12 +7,12 @@ Countdown is a Chrome extension that shows live countdowns to your deadlines and
 ## What data Countdown handles
 
 - **Your items:** the titles, dates, times, notes, repeat rules and categories you enter, and when you completed items.
-- **Your settings:** the countdown unit and theme you chose, and which sections are collapsed.
+- **Your settings:** the countdown unit, light/dark mode and colour theme you chose, whether the toolbar icon shows the time left, and which sections are collapsed.
 - **Calendars you import:** events from .ics files you choose or calendar links you paste.
 
 ## How it's stored
 
-Everything above is stored only on your device, in Chrome's extension storage. It is not synced through your Google account and is never sent to the developer.
+Everything above is stored only on your device, in Chrome's extension storage. It is not synced through your Google account and is never sent to the developer. The toolbar icon's countdown and badge are worked out on your device from the same data.
 
 ## Calendar links
 

@@ -38,17 +38,12 @@ const paths = {
       <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
     </>
   ),
-  sun: (
+  palette: (
     <>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-    </>
-  ),
-  moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />,
-  monitor: (
-    <>
-      <rect x="3" y="4" width="18" height="12.5" rx="2" />
-      <path d="M8 20.5h8M12 16.5v4" />
+      <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.4-.2-.8-.5-1.1a1.6 1.6 0 0 1 1.2-2.7H16a5 5 0 0 0 5-5c0-4.3-4-7.6-9-7.6Z" />
+      <circle cx="7.5" cy="11.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
     </>
   ),
   edit: (

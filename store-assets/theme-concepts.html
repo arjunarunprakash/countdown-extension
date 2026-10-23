@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Countdown theme concepts</title>
+<style>
+  @font-face { font-family: "Inter Variable"; src: url("../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px 48px 64px; min-height: 100vh; font-family: "Inter Variable", system-ui, sans-serif; color: #1b1c1f; background: #e9ebf0;
+    font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 28px; color: #585c66; font-size: 14px; max-width: 900px; line-height: 1.5; }
+  .theme { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start;
+    padding: 24px; margin-bottom: 20px; border-radius: 22px; background: #fff; box-shadow: 0 0 0 1px rgb(20 24 40 / 0.06); }
+  .info h2 { font-size: 20px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+  .info p { font-size: 13px; line-height: 1.55; color: #474b54; margin: 0 0 12px; }
+  .swatches { display: flex; gap: 6px; margin: 4px 0 14px; }
+  .swatches span { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08); }
+  .logos { display: flex; align-items: end; gap: 12px; margin-bottom: 14px; }
+  .logos .tb { display: flex; gap: 6px; padding: 6px 8px; border-radius: 9px; }
+  .stats { display: grid; gap: 4px; font-size: 12px; color: #474b54; }
+  .stats b { font-weight: 600; color: #1b1c1f; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #eef0f6; color: #474b54; }
+  .pill.rec { background: #e7ecff; color: #2a43b3; }
+
+  /* Panel mockup: the side panel at ~360px, built from the same tokens as the app. */
+  .panel { position: relative; overflow: hidden; border-radius: 16px; padding: 0 14px 16px; color: var(--text); background: var(--bg);
+    box-shadow: 0 0 0 1px rgb(20 24 40 / 0.1); isolation: isolate; font-size: 14px; line-height: 20px; }
+  .panel::before { content: ""; position: absolute; inset: 0; z-index: -1; background:
+    radial-gradient(60% 45% at 0% 0%, var(--glow1), transparent 70%),
+    radial-gradient(55% 40% at 100% 12%, var(--glow2), transparent 70%),
+    radial-gradient(70% 45% at 40% 100%, var(--glow3), transparent 70%); }
+  .ph { display: flex; align-items: center; justify-content: space-between; height: 48px; margin: 0 -14px 6px; padding: 0 14px;
+    background: var(--glass-strong); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .ph .unit { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--subtle); padding-left: 18px; }
+  .ph .icons { display: flex; gap: 14px; color: var(--muted); }
+  .ph svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .cat { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; margin: 10px 0 8px; }
+  .cat .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--cs); }
+  .cat .n { color: var(--subtle); font-weight: 400; }
+  .row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+  .glass { border: 1px solid var(--edge); border-radius: 14px; background: var(--glass); backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: inset 0 1px 0 var(--hi), 0 0 0 0.5px var(--border), var(--shadow); }
+  .cd { display: grid; place-items: center; min-height: 58px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+    color: var(--k, var(--accent)); background: linear-gradient(var(--ks, var(--accent-sub)), var(--ks, var(--accent-sub))), var(--glass); }
+  .cd.small { font-size: 12px; letter-spacing: 0; }
+  .tile { position: relative; padding: 10px 12px; min-width: 0; }
+  .tile.cat-row::before { content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--c); }
+  .t1 { display: flex; justify-content: space-between; gap: 6px; font-weight: 500; }
+  .t1 span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag { flex: none; font-size: 10px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; padding: 0 6px; border-radius: 6px; background: var(--accent-sub); color: var(--accent); }
+  .tag.st { background: var(--sunken); color: var(--muted); }
+  .date { font-size: 12px; line-height: 16px; color: var(--muted); margin-top: 2px; }
+  .sec { font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 8px; }
+  .btn { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    background: linear-gradient(135deg, var(--g1), var(--g2)); color: var(--on-accent); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25); }
+  .btn2 { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--accent); }
+  .actions { display: flex; gap: 6px; margin-top: 12px; }
+  @media (max-width: 1100px) {
+    body { padding: 24px 20px 48px; }
+    .theme { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .theme .info { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 24px; }
+    .theme .info > :not(.logos) { grid-column: 1; }
+    .theme .info .logos { grid-column: 2; grid-row: 1 / span 5; align-self: start; }
+  }
+  @media (max-width: 700px) {
+    .theme { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .theme .info { display: block; }
+  }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: #585c66; margin: 0 0 6px 2px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<h1>Countdown colour themes</h1>
+<p class="sub">Seven themes, each shown in the side panel in light and dark mode, with its logo (the Sweep mark) as it would sit in Chrome's toolbar. Every theme was measured before it went in: countdown numbers stay above WCAG AA (4.5:1) over the worst case of the theme's own background glows, button text passes on the gradient, and the accent stays clearly apart from the red that means Overdue.</p>
+<div id="themes"></div>
+<script>
+// Category colours used in the mockups (from the app's palette).
+const CAT = { teal: ["#09616b", "#80d4de"], orange: ["#954300", "#ffb277"] };
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgb(${n >> 16} ${(n >> 8) & 255} ${n & 255} / ${a})`; };
+const THEMES = [
+  { name: "Indigo", tag: "Current", rec: true,
+    why: "Today's palette: indigo into violet over periwinkle, lilac and mint. Calm, cool and neutral enough that the eight category colours all sit comfortably beside it.",
+    light: { accent: "#3451d1", g: ["#3a54d6", "#6a46d4"], bg: "#eef0f6", glows: [[122,140,255,.38],[206,150,255,.32],[110,214,200,.30]] },
+    dark:  { accent: "#a3b2ff", g: ["#8fa2ff", "#b79cff"], bg: "#0c0d12", glows: [[79,99,230,.32],[150,80,220,.24],[20,150,140,.20]] },
+    stats: ["4.57", "4.90", "6.1"], note: "" },
+  { name: "Lagoon", tag: "Cool", rec: true,
+    why: "Teal into ocean blue over aqua and sky glows. The freshest option and the furthest from Overdue red (171°), so warnings stand out most.",
+    light: { accent: "#0a6378", g: ["#0b7d96", "#2f5fcf"], bg: "#ecf3f6", glows: [[80,200,235,.38],[120,160,255,.32],[110,220,190,.30]] },
+    dark:  { accent: "#7fd3e6", g: ["#7fd8ea", "#97b4ff"], bg: "#091115", glows: [[50,124,146,.32],[74,99,158,.24],[68,136,118,.20]] },
+    stats: ["4.91", "5.47", "4.8"], note: "Teal is also a category colour; categories keep their stripe and dot, so they still read apart." },
+  { name: "Fern", tag: "Natural",
+    why: "Forest green into deep teal over mint and pale lime. Restful and good for long sessions; green reads as 'on track' rather than urgent.",
+    light: { accent: "#256b45", g: ["#2a8458", "#11737a"], bg: "#edf3ef", glows: [[120,215,165,.38],[170,220,130,.32],[110,190,235,.30]] },
+    dark:  { accent: "#8fd8ad", g: ["#8fdcae", "#7ccfd0"], bg: "#0a110d", glows: [[74,133,102,.32],[105,136,81,.24],[68,118,146,.20]] },
+    stats: ["4.75", "5.42", "4.6"], note: "Green also marks completed items, so completion uses the check icon as well as colour." },
+  { name: "Orchid", tag: "Vivid",
+    why: "Violet into orchid pink over lilac and rose glows. The most expressive theme, closest to Apple's own purple-pink gradients.",
+    light: { accent: "#7a2ec4", g: ["#7a3ae6", "#b0349c"], bg: "#f3eff8", glows: [[196,150,255,.38],[255,150,210,.32],[140,150,255,.30]] },
+    dark:  { accent: "#d4aaff", g: ["#c7a3ff", "#f0a6dc"], bg: "#100c15", glows: [[122,93,158,.32],[158,93,130,.24],[87,93,158,.20]] },
+    stats: ["4.80", "5.14", "5.5"], note: "The pink end sits 92° from Overdue red: fine, but the closest of the cool themes." },
+  { name: "Dune", tag: "Warm",
+    why: "Amber into copper over apricot and sage glows. A warm, paper-like feel. It needed two changes to work: dark text on its buttons, and Overdue moved from red to crimson.",
+    light: { accent: "#8a5200", g: ["#e09a2c", "#c9772a"], bg: "#f6f2ec", glows: [[255,200,120,.38],[255,160,130,.32],[200,210,150,.30]], onAccent: "#1b1c1f", danger: "#a3124f" },
+    dark:  { accent: "#f2c27c", g: ["#f5cd86", "#f2a77a"], bg: "#120f0b", glows: [[158,124,74,.32],[158,99,81,.24],[124,130,93,.20]], danger: "#ff9dbc" },
+    stats: ["4.80", "5.43", "5.0"], note: "With red Overdue, amber sat only 33° away and the white button text was 2.95:1, so both were adjusted." },
+  { name: "Graphite", tag: "Minimal",
+    why: "Slate and graphite with barely-there glows. Quietest and most professional; lets category colours carry all the colour on screen.",
+    light: { accent: "#3f4a5c", g: ["#4f5a6e", "#262d3a"], bg: "#eff0f2", glows: [[150,165,190,.38],[175,175,195,.32],[160,185,190,.30]] },
+    dark:  { accent: "#c8d0dc", g: ["#dfe4ec", "#a7b2c4"], bg: "#0c0d0f", glows: [[93,102,118,.32],[108,108,121,.24],[99,115,118,.20]] },
+    stats: ["6.28", "5.99", "6.9"], note: "Highest contrast of the glass themes. With little colour, the toolbar icon is the plainest of the set." },
+  { name: "Clear", tag: "Readability",
+    why: "Indigo accents on solid surfaces: no translucency or glows. The most legible option, and the one to switch to automatically when someone turns on Reduce transparency.",
+    light: { accent: "#3451d1", g: ["#3a54d6", "#6a46d4"], bg: "#f2f3f6", glows: [[0,0,0,0],[0,0,0,0],[0,0,0,0]], solid: true },
+    dark:  { accent: "#a3b2ff", g: ["#8fa2ff", "#b79cff"], bg: "#111216", glows: [[0,0,0,0],[0,0,0,0],[0,0,0,0]], solid: true },
+    stats: ["5.58", "6.12", "6.1"], note: "Loses the glass look by design; best as a setting or an automatic fallback, not the default." },
+];
+
+let uid = 0;
+const pt = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [64 + r * Math.cos(a), 64 + r * Math.sin(a)]; };
+const wedge = (r, a1) => `M64 64L${pt(r, 0).join(" ")}A${r} ${r} 0 ${a1 > 180 ? 1 : 0} 1 ${pt(r, a1).map((v) => v.toFixed(2)).join(" ")}Z`;
+// The Sweep mark, tinted by the theme: frosted tile with the theme's glows (dark mode: a deep tile).
+function logo(m, dark, size) {
+  const id = ++uid, [g1, g2] = m.g, gl = m.glows;
+  const tile = dark ? "#1a1c24" : "#f6f7fb";
+  const glow = (i, cx, cy) => `<radialGradient id="r${id}${i}" cx="${cx}" cy="${cy}" r="0.8"><stop offset="0" stop-color="rgb(${gl[i].slice(0, 3)})" stop-opacity="${dark ? 0.55 : 0.6}"/><stop offset="1" stop-color="rgb(${gl[i].slice(0, 3)})" stop-opacity="0"/></radialGradient>`;
+  const vb = size <= 32 ? "14 14 100 100" : "0 0 128 128";
+  return `<svg width="${size}" height="${size}" viewBox="${vb}" aria-hidden="true"><defs>
+    <linearGradient id="a${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${g1}"/><stop offset="1" stop-color="${g2}"/></linearGradient>
+    ${m.solid ? "" : glow(0, 0.15, 0.1) + glow(1, 0.9, 0.05) + glow(2, 0.9, 0.95)}</defs>
+    <rect x="16" y="16" width="96" height="96" rx="26" fill="${tile}"/>
+    ${m.solid ? "" : [0, 1, 2].map((i) => `<rect x="16" y="16" width="96" height="96" rx="26" fill="url(#r${id}${i})"/>`).join("")}
+    <rect x="16.5" y="16.5" width="95" height="95" rx="25.5" fill="none" stroke="${dark ? "#fff" : g1}" stroke-opacity="${dark ? 0.12 : 0.18}"/>
+    <circle cx="64" cy="64" r="33" fill="${dark ? "#0f1016" : "#fff"}" stroke="${g1}" stroke-opacity="0.22" stroke-width="2"/>
+    <path d="${wedge(29, 270)}" fill="url(#a${id})"/>
+    <circle cx="64" cy="64" r="7" fill="${dark ? "#0f1016" : "#fff"}"/></svg>`;
+}
+
+const icon = (d) => `<svg viewBox="0 0 24 24">${d}</svg>`;
+const ICONS = [icon('<path d="M12 5v14M5 12h14"/>'), icon('<path d="M12 4v11m-4-4l4 4 4-4M5 20h14"/>'), icon('<path d="M12 20V9m-4 4l4-4 4 4M5 4h14"/>'), icon('<rect x="4" y="5" width="16" height="11" rx="2"/><path d="M9 20h6"/>')];
+
+function vars(m, dark) {
+  const v = dark
+    ? { text: "#eceef2", muted: "#b9bcc4", subtle: "#a9adb6", glass: m.solid ? "#1b1d24" : "rgb(30 32 42 / 0.55)", "glass-strong": m.solid ? "#16171c" : "rgb(26 28 36 / 0.7)",
+        edge: m.solid ? "rgb(255 255 255 / 0.08)" : "rgb(255 255 255 / 0.1)", hi: "rgb(255 255 255 / 0.08)", border: "rgb(255 255 255 / 0.08)", sunken: "rgb(255 255 255 / 0.07)",
+        shadow: "0 10px 24px -18px rgb(0 0 0 / 0.7)", "accent-sub": rgba(m.accent, 0.14), "on-accent": m.onAccent ?? "#0d0f1a", danger: m.danger ?? "#ff9d94" }
+    : { text: "#1b1c1f", muted: "#474b54", subtle: "#585c66", glass: m.solid ? "#ffffff" : "rgb(255 255 255 / 0.62)", "glass-strong": m.solid ? "#ffffff" : "rgb(255 255 255 / 0.7)",
+        edge: m.solid ? "rgb(20 24 40 / 0.1)" : "rgb(255 255 255 / 0.8)", hi: "rgb(255 255 255 / 0.95)", border: "rgb(20 24 40 / 0.08)", sunken: "rgb(20 24 40 / 0.05)",
+        shadow: m.solid ? "none" : "0 10px 24px -18px rgb(20 24 40 / 0.35)", "accent-sub": rgba(m.accent, 0.1), "on-accent": m.onAccent ?? "#ffffff", danger: m.danger ?? "#b3261f" };
+  Object.assign(v, { bg: m.bg, accent: m.accent, g1: m.g[0], g2: m.g[1] });
+  m.glows.forEach((g, i) => (v[`glow${i + 1}`] = `rgb(${g[0]} ${g[1]} ${g[2]} / ${g[3]})`));
+  return Object.entries(v).map(([k, val]) => `--${k}:${val}`).join(";");
+}
+
+function panel(m, dark) {
+  const c = (name) => `--c:${CAT[name][dark ? 1 : 0]};--cs:${rgba(CAT[name][dark ? 1 : 0], dark ? 0.14 : 0.1)}`;
+  const row = (num, title, tag, date, catName, small) => `<div class="row" ${catName ? `style="${c(catName)}"` : ""}>
+      <div class="glass cd ${small ? "small" : ""}" ${catName ? `style="--k:var(--c);--ks:var(--cs)"` : ""}>${num}</div>
+      <div class="glass tile ${catName ? "cat-row" : ""}"><div class="t1"><span>${title}</span><span class="tag ${tag === "STARTS" ? "st" : ""}">${tag}</span></div><div class="date">${date}</div></div></div>`;
+  return `<div class="panel" style="${vars(m, dark)}">
+    <div class="ph"><span class="unit">DAYS</span><span class="icons">${ICONS.join("")}</span></div>
+    <div class="cat" style="${c("teal")}"><span class="dot"></span>CPSC 213 <span class="n">2</span></div>
+    ${row("&lt;1", "Assignment 3", "DUE", "Friday 23 Oct, 9:00 AM", "teal")}
+    ${row("6", "Midterm", "STARTS", "Wednesday 28 Oct, 2:00 PM", "teal")}
+    <div class="cat"><span class="dot" style="background:var(--subtle);box-shadow:none"></span>Other <span class="n">2</span></div>
+    ${row("8", "Flight to Lisbon", "STARTS", "Saturday 31 Oct, 7:45 AM")}
+    ${row("41", "Q4 estimated tax payment", "DUE", "Wednesday 2 Dec, 11:59 PM")}
+    <div class="sec">Overdue 1</div>
+    <div class="row"><div class="glass cd small" style="--k:var(--danger);--ks:color-mix(in srgb, var(--danger) ${dark ? 14 : 10}%, transparent)">Overdue</div>
+      <div class="glass tile"><div class="t1"><span>Return library books</span><span class="tag">DUE</span></div><div class="date">Tuesday 20 Oct, 6:00 PM</div></div></div>
+    <div class="actions"><span class="btn">Add selected</span><span class="btn2">Cancel</span></div>
+  </div>`;
+}
+
+// ?only=2 renders just one theme (handy for screenshots).
+const only = new URLSearchParams(location.search).get("only");
+document.getElementById("themes").innerHTML = THEMES.filter((t, i) => only === null || String(i) === only).map((t, i) => `<section class="theme" id="t${i}">
+  <div class="info">
+    <h2>${t.name} <span class="pill ${t.rec ? "rec" : ""}">${t.tag}${t.rec ? " · recommended" : ""}</span></h2>
+    <div class="swatches">${[t.light.g[0], t.light.g[1], t.light.accent, t.dark.accent, t.light.bg, t.dark.bg].map((s) => `<span style="background:${s}"></span>`).join("")}</div>
+    <p>${t.why}</p>
+    <div class="logos">${logo(t.light, false, 72)}${logo(t.dark, true, 72)}
+      <div><div class="tb" style="background:#fff;box-shadow:inset 0 0 0 1px #dadce0">${logo(t.light, false, 16)}${logo(t.light, false, 32)}</div>
+      <div class="tb" style="background:#35363a;margin-top:6px">${logo(t.dark, true, 16)}${logo(t.dark, true, 32)}</div></div></div>
+    <div class="stats"><span>Countdown numbers <b>${t.stats[0]}:1</b> light · <b>${t.stats[1]}:1</b> dark</span><span>Button text <b>${t.stats[2]}:1</b> or better</span></div>
+    ${t.note ? `<p style="margin-top:10px;font-size:12px;color:#585c66">${t.note}</p>` : ""}
+  </div>
+  <div><p class="label">Light</p>${panel(t.light, false)}</div>
+  <div><p class="label">Dark</p>${panel(t.dark, true)}</div>
+</section>`).join("");
+</script>
+</body>
+</html>

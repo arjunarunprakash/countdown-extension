@@ -1,13 +1,11 @@
 import { nextUnit, UNIT_LABEL } from "../lib/countdown";
 import type { Unit } from "../lib/types";
 import { enterSelection, exitSelection, isSelecting, selected, selectionMode, setSelected } from "../state/selection";
-import { prefs, setPrefs } from "../state/store";
-import { cycleTheme, systemDark, THEME_LABEL } from "../state/theme";
-import { Checkbox } from "./Checkbox";
+import { setPrefs } from "../state/store";
 import { AddMenu } from "./AddMenu";
+import { AppearanceMenu } from "./AppearanceMenu";
+import { Checkbox } from "./Checkbox";
 import { IconButton } from "./IconButton";
-
-const THEME_ICON = { system: "monitor", light: "sun", dark: "moon" } as const;
 
 interface Props {
   unit: Unit;
@@ -72,12 +70,7 @@ export function Header({ unit, onNew, onNewCategory, selectable }: Props) {
           disabled={selectionMode.value === "import"}
           onClick={() => (selectionMode.value === "export" ? exitSelection() : enterSelection("export"))}
         />
-        <IconButton
-          icon={THEME_ICON[prefs.value.theme]}
-          label={`Theme: ${THEME_LABEL[prefs.value.theme]}${prefs.value.theme === "system" ? ` (${systemDark.value ? "dark" : "light"})` : ""}`}
-          onClick={cycleTheme}
-          tooltipAlign="end"
-        />
+        <AppearanceMenu />
       </div>
     </header>
   );

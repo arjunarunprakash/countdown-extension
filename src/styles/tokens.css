@@ -6,7 +6,12 @@
  * Theming: each color is written once as light-dark(<light>, <dark>). The
  * resolved value follows the element's color-scheme, which is the system
  * setting by default and is forced by <html data-theme="light|dark">
- * (set from the theme toggle). Requires Chrome 123+.
+ * (set from the Appearance menu). Requires Chrome 123+.
+ *
+ * Colour themes: <html data-palette="…"> swaps the --p-* primitives below
+ * (accent, gradient, background, glows); every accent-derived token is
+ * computed from them. The same colours live in src/lib/palettes.ts for the
+ * toolbar icon and the swatches; tests/palettes.test.ts keeps them in sync.
  */
 
 :root {
@@ -28,19 +33,31 @@
   --color-text-subtle: light-dark(#585c66, #a9adb6);
   --color-text-disabled: light-dark(#8b8f98, #6e727a);
 
+  /* ── Palette primitives (Indigo; overridden per palette below) ── */
+  --p-accent-l: #3451d1;     --p-accent-d: #a3b2ff;
+  --p-grad-1-l: #3a54d6;     --p-grad-2-l: #6a46d4;
+  --p-grad-1-d: #8fa2ff;     --p-grad-2-d: #b79cff;
+  --p-bg-l: #eef0f6;         --p-bg-d: #0c0d12;
+  --p-glow-1-l: rgb(122 140 255 / 0.38);  --p-glow-1-d: rgb(79 99 230 / 0.32);
+  --p-glow-2-l: rgb(206 150 255 / 0.32);  --p-glow-2-d: rgb(150 80 220 / 0.24);
+  --p-glow-3-l: rgb(110 214 200 / 0.3);   --p-glow-3-d: rgb(20 150 140 / 0.2);
+  --p-on-accent-l: #ffffff;  --p-on-accent-d: #0d0f1a;
+  --p-danger-l: #b3261f;     --p-danger-d: #ff9d94;
+
   /* ── Accent, danger, focus ───────────────────────────────── */
-  --color-accent: light-dark(#3451d1, #a3b2ff);
-  --color-accent-hover: light-dark(#2a43b3, #bcc7ff);
-  --color-accent-subtle: light-dark(rgb(52 81 209 / 0.1), rgb(163 178 255 / 0.14));
-  --color-accent-subtle-hover: light-dark(rgb(52 81 209 / 0.16), rgb(163 178 255 / 0.22));
-  --color-on-accent: light-dark(#ffffff, #0d0f1a);
-  --color-danger: light-dark(#b3261f, #ff9d94);
-  --color-danger-hover: light-dark(#931e18, #ffb8b1);
-  --color-danger-subtle: light-dark(rgb(179 38 31 / 0.1), rgb(255 157 148 / 0.14));
+  --color-accent: light-dark(var(--p-accent-l), var(--p-accent-d));
+  --color-accent-hover: light-dark(color-mix(in srgb, var(--p-accent-l) 82%, black), color-mix(in srgb, var(--p-accent-d) 75%, white));
+  --color-accent-subtle: light-dark(color-mix(in srgb, var(--p-accent-l) 10%, transparent), color-mix(in srgb, var(--p-accent-d) 14%, transparent));
+  --color-accent-subtle-hover: light-dark(color-mix(in srgb, var(--p-accent-l) 16%, transparent), color-mix(in srgb, var(--p-accent-d) 22%, transparent));
+  --color-accent-edge: light-dark(color-mix(in srgb, var(--p-accent-l) 30%, transparent), color-mix(in srgb, var(--p-accent-d) 32%, transparent));
+  --color-on-accent: light-dark(var(--p-on-accent-l), var(--p-on-accent-d));
+  --color-danger: light-dark(var(--p-danger-l), var(--p-danger-d));
+  --color-danger-hover: light-dark(color-mix(in srgb, var(--p-danger-l) 82%, black), color-mix(in srgb, var(--p-danger-d) 75%, white));
+  --color-danger-subtle: light-dark(color-mix(in srgb, var(--p-danger-l) 10%, transparent), color-mix(in srgb, var(--p-danger-d) 14%, transparent));
   --color-focus: var(--color-accent);
 
   /* ── Neutral fills and lines (translucent, so they sit on glass) ── */
-  --color-bg: light-dark(#eef0f6, #0c0d12);
+  --color-bg: light-dark(var(--p-bg-l), var(--p-bg-d));
   --color-border: light-dark(rgb(20 24 40 / 0.08), rgb(255 255 255 / 0.08));
   --color-border-strong: light-dark(rgb(20 24 40 / 0.16), rgb(255 255 255 / 0.16));
   --color-surface-hover: light-dark(rgb(20 24 40 / 0.05), rgb(255 255 255 / 0.07));
@@ -52,7 +69,8 @@
   /* Inverted surface for the toast. */
   --color-inverse-bg: light-dark(rgb(27 28 33 / 0.9), rgb(236 238 242 / 0.94));
   --color-inverse-text: light-dark(#f4f5f7, #15161a);
-  --color-accent-inverse: light-dark(#a6b4ff, #2f49c4);
+  /* The other mode's accent: readable on the inverted toast in every palette. */
+  --color-accent-inverse: light-dark(var(--p-accent-d), var(--p-accent-l));
 
   /* ── Glass ─────────────────────────────────────────────────────
      Translucent fill + backdrop blur + a bright 1px top edge, over the
@@ -69,10 +87,11 @@
 
   /* ── Gradients ───────────────────────────────────────────── */
   --gradient-bg:
-    radial-gradient(60% 45% at 0% 0%, light-dark(rgb(122 140 255 / 0.38), rgb(79 99 230 / 0.32)), transparent 70%),
-    radial-gradient(55% 40% at 100% 12%, light-dark(rgb(206 150 255 / 0.32), rgb(150 80 220 / 0.24)), transparent 70%),
-    radial-gradient(70% 45% at 40% 100%, light-dark(rgb(110 214 200 / 0.3), rgb(20 150 140 / 0.2)), transparent 70%);
-  --gradient-accent: linear-gradient(135deg, light-dark(#3a54d6, #8fa2ff), light-dark(#6a46d4, #b79cff));
+    radial-gradient(60% 45% at 0% 0%, light-dark(var(--p-glow-1-l), var(--p-glow-1-d)), transparent 70%),
+    radial-gradient(55% 40% at 100% 12%, light-dark(var(--p-glow-2-l), var(--p-glow-2-d)), transparent 70%),
+    radial-gradient(70% 45% at 40% 100%, light-dark(var(--p-glow-3-l), var(--p-glow-3-d)), transparent 70%);
+  --gradient-accent-2: light-dark(var(--p-grad-2-l), var(--p-grad-2-d));
+  --gradient-accent: linear-gradient(135deg, light-dark(var(--p-grad-1-l), var(--p-grad-1-d)), var(--gradient-accent-2));
 
   /* ── Elevation ───────────────────────────────────────────── */
   --shadow-tile:
@@ -160,7 +179,79 @@
   }
 }
 
-/* ── Reduced transparency: solid surfaces, no blur ─────────── */
+/* ── Palettes ─────────────────────────────────────────────────
+   Values match src/lib/palettes.ts. Measured contrast is in DESIGN.md. */
+:root[data-palette="lagoon"] {
+  --p-accent-l: #0a6378;     --p-accent-d: #7fd3e6;
+  --p-grad-1-l: #0b7d96;     --p-grad-2-l: #2f5fcf;
+  --p-grad-1-d: #7fd8ea;     --p-grad-2-d: #97b4ff;
+  --p-bg-l: #ecf3f6;         --p-bg-d: #091115;
+  --p-glow-1-l: rgb(80 200 235 / 0.38);   --p-glow-1-d: rgb(50 124 146 / 0.32);
+  --p-glow-2-l: rgb(120 160 255 / 0.32);  --p-glow-2-d: rgb(74 99 158 / 0.24);
+  --p-glow-3-l: rgb(110 220 190 / 0.3);   --p-glow-3-d: rgb(68 136 118 / 0.2);
+}
+
+:root[data-palette="fern"] {
+  --p-accent-l: #256b45;     --p-accent-d: #8fd8ad;
+  --p-grad-1-l: #2a8458;     --p-grad-2-l: #11737a;
+  --p-grad-1-d: #8fdcae;     --p-grad-2-d: #7ccfd0;
+  --p-bg-l: #edf3ef;         --p-bg-d: #0a110d;
+  --p-glow-1-l: rgb(120 215 165 / 0.38);  --p-glow-1-d: rgb(74 133 102 / 0.32);
+  --p-glow-2-l: rgb(170 220 130 / 0.32);  --p-glow-2-d: rgb(105 136 81 / 0.24);
+  --p-glow-3-l: rgb(110 190 235 / 0.3);   --p-glow-3-d: rgb(68 118 146 / 0.2);
+}
+
+:root[data-palette="orchid"] {
+  --p-accent-l: #7a2ec4;     --p-accent-d: #d4aaff;
+  --p-grad-1-l: #7a3ae6;     --p-grad-2-l: #b0349c;
+  --p-grad-1-d: #c7a3ff;     --p-grad-2-d: #f0a6dc;
+  --p-bg-l: #f3eff8;         --p-bg-d: #100c15;
+  --p-glow-1-l: rgb(196 150 255 / 0.38);  --p-glow-1-d: rgb(122 93 158 / 0.32);
+  --p-glow-2-l: rgb(255 150 210 / 0.32);  --p-glow-2-d: rgb(158 93 130 / 0.24);
+  --p-glow-3-l: rgb(140 150 255 / 0.3);   --p-glow-3-d: rgb(87 93 158 / 0.2);
+}
+
+/* Warm: amber buttons need dark text, and Overdue moves to crimson so it
+   stays well apart from the amber accent. */
+:root[data-palette="dune"] {
+  --p-accent-l: #8a5200;     --p-accent-d: #f2c27c;
+  --p-grad-1-l: #e09a2c;     --p-grad-2-l: #c9772a;
+  --p-grad-1-d: #f5cd86;     --p-grad-2-d: #f2a77a;
+  --p-bg-l: #f6f2ec;         --p-bg-d: #120f0b;
+  --p-glow-1-l: rgb(255 200 120 / 0.38);  --p-glow-1-d: rgb(158 124 74 / 0.32);
+  --p-glow-2-l: rgb(255 160 130 / 0.32);  --p-glow-2-d: rgb(158 99 81 / 0.24);
+  --p-glow-3-l: rgb(200 210 150 / 0.3);   --p-glow-3-d: rgb(124 130 93 / 0.2);
+  --p-on-accent-l: #1b1c1f;
+  --p-danger-l: #a3124f;     --p-danger-d: #ff9dbc;
+}
+
+:root[data-palette="graphite"] {
+  --p-accent-l: #3f4a5c;     --p-accent-d: #c8d0dc;
+  --p-grad-1-l: #4f5a6e;     --p-grad-2-l: #262d3a;
+  --p-grad-1-d: #dfe4ec;     --p-grad-2-d: #a7b2c4;
+  --p-bg-l: #eff0f2;         --p-bg-d: #0c0d0f;
+  --p-glow-1-l: rgb(150 165 190 / 0.38);  --p-glow-1-d: rgb(93 102 118 / 0.32);
+  --p-glow-2-l: rgb(175 175 195 / 0.32);  --p-glow-2-d: rgb(108 108 121 / 0.24);
+  --p-glow-3-l: rgb(160 185 190 / 0.3);   --p-glow-3-d: rgb(99 115 118 / 0.2);
+}
+
+/* Clear: Indigo's colours on solid surfaces, no glows. */
+:root[data-palette="clear"] {
+  --p-bg-l: #f2f3f6;         --p-bg-d: #111216;
+  --p-glow-1-l: transparent; --p-glow-1-d: transparent;
+  --p-glow-2-l: transparent; --p-glow-2-d: transparent;
+  --p-glow-3-l: transparent; --p-glow-3-d: transparent;
+}
+
+/* ── Solid surfaces: the Clear palette, and anyone with Reduce transparency on ── */
+:root[data-palette="clear"] {
+  --glass-fill: light-dark(#ffffff, #1d1f27);
+  --glass-fill-hover: light-dark(#f4f5f9, #262934);
+  --glass-fill-muted: light-dark(#f4f5f9, #181a21);
+  --glass-fill-strong: light-dark(#ffffff, #1d1f27);
+  --glass-blur: none;
+}
+
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-fill: light-dark(#ffffff, #1d1f27);

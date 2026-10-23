@@ -27,7 +27,9 @@ FEATURES
 • Import from .ics files or calendar links (Google Calendar, Apple Calendar, Outlook), with a preview and duplicate detection.
 • Export to Google Calendar or download an .ics file for any calendar app.
 • Undo for every remove, complete and import.
-• Light and dark themes, full keyboard support, screen-reader friendly, and respects reduced-motion settings.
+• Seven colour themes in light and dark, including a solid, extra-readable one.
+• A toolbar icon that matches your theme and Chrome's light or dark mode, and can show how long until your next item. You can turn the countdown off.
+• Full keyboard support, screen-reader friendly, and respects reduced-motion and reduced-transparency settings.
 
 HOW TO USE
 1. Pin Countdown and click its toolbar icon to open the side panel.
@@ -75,6 +77,8 @@ Screenshots 1–2 show the panel with sample data in light and dark mode next to
 | `sidePanel` | permissions | Countdown's whole interface is a side panel. Clicking the toolbar icon opens it beside the current page so the user can watch their countdowns while browsing. |
 | `storage` | permissions | Saves the user's deadlines, events, repeat rules, categories, completion history and display settings locally on their device (`chrome.storage.local`), so they persist between sessions. Nothing is synced or sent anywhere. |
 | `https://*/*` | optional_host_permissions | Not granted at install. Requested only when the user pastes a calendar link (for example a Google Calendar "Secret address in iCal format") and presses Fetch. Chrome then asks for that one site (and its subdomains, because calendar servers redirect between them, e.g. p52-caldav.icloud.com). The extension downloads that single .ics file, without cookies, to show an import preview. No other request is made to the site and no page content is read. |
+| `alarms` | permissions | Redraws the toolbar icon at the moment its badge or countdown sweep should next change (for example when "3d" becomes "2d"), even while the side panel is closed. No data leaves the device. |
+| `offscreen` | permissions | Extension background scripts can't read whether Chrome is in light or dark mode, so a small hidden page (offscreen reason MATCH_MEDIA) reports it, letting the toolbar icon match the toolbar it sits on. The page does nothing else and makes no network requests. |
 
 Remote code: none. All JavaScript is bundled in the package; the extension never loads or evaluates remote scripts.
 
@@ -126,7 +130,7 @@ The source is [PRIVACY.md](PRIVACY.md). Keep it consistent with the Privacy & Da
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-10-22 | First release: live countdowns, repeating items, categories, import/export, themes | Draft |
+| 1.0.0 | 2026-10-22 | First release: live countdowns, repeating items, categories, import/export, seven colour themes, live toolbar icon | Draft |
 
 ## Review Notes
 

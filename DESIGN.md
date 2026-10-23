@@ -24,12 +24,29 @@ Semantic tokens, written once as `light-dark(<light>, <dark>)`. Light/dark follo
 | `color-text-subtle` | `#585c66` | `#a9adb6` | Meta lines, hints, placeholders |
 | `color-text-disabled` | `#8b8f98` | `#6e727a` | Disabled controls (exempt from contrast rules) |
 
+### Colour themes (palettes)
+
+Seven palettes, chosen in the Appearance menu. Each sets a handful of primitives in `tokens.css` (`--p-accent-*`, `--p-grad-*`, `--p-bg-*`, `--p-glow-*`, plus `--p-on-accent-*` and `--p-danger-*` where they differ); everything else is derived. Values below are light / dark.
+
+| Palette | Accent | Gradient | Countdown numbers (worst case) | Buttons | Notes |
+|---|---|---|---|---|---|
+| Indigo (default) | `#3451d1` / `#a3b2ff` | `#3a54d6 → #6a46d4` / `#8fa2ff → #b79cff` | 4.57 / 4.90 | 6.1 | |
+| Lagoon | `#0a6378` / `#7fd3e6` | `#0b7d96 → #2f5fcf` / `#7fd8ea → #97b4ff` | 4.91 / 5.47 | 4.8 | Furthest from Overdue red (171°) |
+| Fern | `#256b45` / `#8fd8ad` | `#2a8458 → #11737a` / `#8fdcae → #7ccfd0` | 4.75 / 5.42 | 4.6 | |
+| Orchid | `#7a2ec4` / `#d4aaff` | `#7a3ae6 → #b0349c` / `#c7a3ff → #f0a6dc` | 4.80 / 5.14 | 5.5 | 92° from Overdue red |
+| Dune | `#8a5200` / `#f2c27c` | `#e09a2c → #c9772a` / `#f5cd86 → #f2a77a` | 4.80 / 5.43 | 5.0 (dark text) | On-accent `#1b1c1f`; Overdue crimson `#a3124f` / `#ff9dbc` |
+| Graphite | `#3f4a5c` / `#c8d0dc` | `#4f5a6e → #262d3a` / `#dfe4ec → #a7b2c4` | 6.28 / 5.99 | 6.9 | |
+| Clear | Indigo's | Indigo's | 5.58 / 6.12 | 6.1 | Solid surfaces, no glows |
+
+Rules a new palette must pass (measured the same way as the rest of this page): accent on its 10%/14% tint over glass over every combination of its glows ≥ 4.5:1; on-accent text on both gradient stops ≥ 4.5:1; the light/dark accent on the opposite mode's toast (the Undo link) ≥ 4.5:1; and the accent hue at least ~60° from the danger red, or the palette moves danger instead (as Dune does). Rejected: red and pink accents (they compete with Overdue) and yellow (can't reach contrast in light mode without turning brown).
+
 ### Accent, danger, focus
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | `color-accent` | `#3451d1` | `#a3b2ff` | Countdown numbers, links, quiet buttons, selection |
-| `color-accent-hover` | `#2a43b3` | `#bcc7ff` | Hover on accent text |
+| `color-accent-hover` | accent + 18% black | accent + 25% white | Hover on accent text |
+| `color-accent-edge` | accent @ 30% | accent @ 32% | Accent hairlines (import badge, candidate tiles) |
 | `color-accent-subtle` | `#3451d1` @ 10% | `#a3b2ff` @ 14% | Countdown box tint, chips, Due tag |
 | `color-accent-subtle-hover` | `#3451d1` @ 16% | `#a3b2ff` @ 22% | Hover on subtle accent |
 | `color-on-accent` | `#ffffff` | `#0d0f1a` | Text/icons on accent fills and the accent gradient |
@@ -152,7 +169,10 @@ Floating layers (calendar, time list, tooltip) render in the browser's top layer
 
 | Component | Anatomy | States |
 |---|---|---|
-| **Header** | Select-all (selection mode) · unit label · New item, Import, Export, Theme | Unit label cycles Days → Hours → Minutes → Seconds; Import/Export pressed while their sheet is open; New item disabled in selection mode |
+| **Header** | Select-all (selection mode) · unit label · New item, Import, Export, Appearance | Unit label cycles Days → Hours → Minutes → Seconds; Import/Export pressed while their sheet is open; New item disabled in selection mode |
+| **Appearance menu** | Popover from the palette button: title · Mode (three-way segmented: "System (light)", Light, Dark) · Colour (seven 28px swatches, native radios) · "Time left on toolbar icon" switch with a hint | Swatch: the palette's gradient with a check in its on-accent colour; Clear is a solid disc ringed in its accent; selected gets a 2px gap and a muted ring. Changes cross-fade the panel |
+| **Switch** | Checkbox with `role="switch"` drawn as a 36×22 track and 16px knob (Chrome has no native switch yet) | Off: strong border colour · On: accent gradient, knob in on-accent colour, slides 14px · Forced colors: system colours |
+| **Toolbar icon** | The Sweep mark: frosted tile (palette glows), white or near-black disc with a faint accent ring, accent-gradient wedge, hub. Drawn at 16 and 32px | Light or dark to match Chrome · wedge = share of time left (min 6%, resting 75% when off or nothing's due) · badge in the accent colour |
 | **Countdown box** | Number in `color-accent` on accent-tinted glass; in list rows it's a button | Normal · hover (stronger tint) · pressed (scale 0.97) · own unit (small uppercase unit label under the number, `text-xs` semibold) · long (17px) · `<1` · Overdue (red on danger tint) · Started (muted) · Completing (accent gradient, check draws, sparks) · Completed (check icon) |
 | **Tile** | Title · Due/Starts tag · date · notes (one line) · meta line (repeat rule, Import badge) | Default · hover (`glass-fill-hover`) · pressed (scale 0.99) · past/completed (`glass-fill-muted`, muted title) · selected (accent tint + 1.5px accent ring) · import candidate (accent hairline) · duplicate (muted, subtle text, "Already added") |
 | **Stack** | Tile + up to two peeking layers (7px steps, 94% / 88% width) | Closed · open (full-row stack editor: Time for every occurrence; occurrence rows with checkbox, title, date · time · relative time, Edit / Complete / Remove) |

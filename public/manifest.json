@@ -4,8 +4,15 @@
   "version": "1.0.0",
   "description": "Live countdowns to your deadlines and events, in Chrome's side panel.",
   "minimum_chrome_version": "123",
-  "permissions": ["sidePanel", "storage"],
-  "optional_host_permissions": ["https://*/*"],
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "alarms",
+    "offscreen"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
   "background": {
     "service_worker": "service-worker.js",
     "type": "module"

@@ -16,6 +16,7 @@ export default defineConfig({
       input: {
         sidepanel: resolve(import.meta.dirname, "src/sidepanel/index.html"),
         "service-worker": resolve(import.meta.dirname, "src/background/service-worker.ts"),
+        offscreen: resolve(import.meta.dirname, "src/offscreen/index.html"),
       },
       output: {
         entryFileNames: (chunk) =>

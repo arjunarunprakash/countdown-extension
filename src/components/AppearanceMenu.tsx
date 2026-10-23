@@ -1,0 +1,156 @@
+import { useEffect, useId, useRef, useState } from "preact/hooks";
+import { PALETTES, paletteById, type Palette, type PaletteId } from "../lib/palettes";
+import type { Theme } from "../lib/storage";
+import { prefs, setPrefs } from "../state/store";
+import { setAppearance, shownAppearance, systemDark, THEME_LABEL } from "../state/theme";
+import { Icon } from "./Icon";
+import { Popover } from "./Popover";
+
+const THEMES: Theme[] = ["system", "light", "dark"];
+
+/**
+ * A palette's swatch in the current scheme: its gradient with a check in the
+ * colour its buttons use for text. Clear is a solid surface ringed in its accent.
+ */
+function swatchStyle(p: Palette): Record<string, string> {
+  const ld = (l: string, d: string) => `light-dark(${l}, ${d})`;
+  if (p.solid) {
+    const accent = ld(p.light.accent, p.dark.accent);
+    return { background: ld("#ffffff", "#1d1f27"), color: accent, "--swatch-ring": accent };
+  }
+  const [l1, l2] = p.light.gradient;
+  const [d1, d2] = p.dark.gradient;
+  return {
+    background: `linear-gradient(135deg, ${ld(l1, d1)}, ${ld(l2, d2)})`,
+    color: ld(p.light.onAccent ?? "#ffffff", p.dark.onAccent ?? "#0d0f1a"),
+  };
+}
+
+/**
+ * The header's Appearance button and its menu: light/dark mode, colour
+ * theme, and whether the toolbar icon shows the time left. New settings go
+ * here too; when it outgrows a popover it becomes a bottom sheet.
+ */
+export function AppearanceMenu() {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const reducedTransparency = matchMedia("(prefers-reduced-transparency: reduce)").matches;
+  const { theme, palette } = shownAppearance.value;
+  const { liveIcon } = prefs.value;
+
+  const close = (returnFocus: boolean) => {
+    setOpen(false);
+    if (returnFocus) buttonRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLInputElement>("input:checked")?.focus();
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!menuRef.current?.contains(t) && !buttonRef.current?.contains(t)) close(false);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [open]);
+
+  const modeLabel = (t: Theme) => (t === "system" ? `System (${systemDark.value ? "dark" : "light"})` : THEME_LABEL[t]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        class="icon-button"
+        aria-label="Appearance"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        data-tooltip="Appearance"
+        data-tooltip-align="end"
+        onClick={() => (open ? close(false) : setOpen(true))}
+      >
+        <Icon name="palette" />
+      </button>
+      {open && (
+        <Popover
+          anchor={buttonRef}
+          align="end"
+          popoverRef={menuRef}
+          class="popover--appearance"
+          role="dialog"
+          aria-labelledby={`${id}-title`}
+          onKeyDown={(e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              close(true);
+            }
+          }}
+        >
+          <h2 id={`${id}-title`} class="appearance__title">
+            Appearance
+          </h2>
+
+          <fieldset class="appearance__group">
+            <legend class="field-label">Mode</legend>
+            <div class="segmented segmented--three">
+              {THEMES.map((t) => (
+                <label key={t} class="segmented__option">
+                  <input type="radio" name={`${id}-mode`} checked={theme === t} onChange={() => setAppearance({ theme: t })} />
+                  <span>{modeLabel(t)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset class="appearance__group">
+            <legend class="field-label">
+              Colour <span class="appearance__current">{paletteById(palette).name}</span>
+            </legend>
+            <div class="palette-swatches">
+              {PALETTES.map((p) => (
+                <label key={p.id} class="palette-swatch" data-tooltip={p.name}>
+                  <input
+                    type="radio"
+                    name={`${id}-palette`}
+                    class="visually-hidden"
+                    aria-label={p.name}
+                    checked={palette === p.id}
+                    onChange={() => setAppearance({ palette: p.id as PaletteId })}
+                  />
+                  <span class="palette-swatch__dot" style={swatchStyle(p)}>
+                    {palette === p.id && <Icon name="check" />}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {reducedTransparency && <p class="field-hint">Reduce transparency is on, so every colour uses solid surfaces.</p>}
+          </fieldset>
+
+          <div class="appearance__group appearance__switch-row">
+            <label class="appearance__switch-label" for={`${id}-live`}>
+              Time left on toolbar icon
+            </label>
+            {/* Chrome has no native switch yet: a checkbox with role="switch", styled as one. */}
+            <input
+              id={`${id}-live`}
+              type="checkbox"
+              role="switch"
+              class="switch"
+              aria-describedby={`${id}-live-hint`}
+              checked={liveIcon}
+              onChange={(e) => setPrefs({ liveIcon: e.currentTarget.checked })}
+            />
+            <p id={`${id}-live-hint`} class="field-hint">
+              {liveIcon
+                ? "The icon's sweep shrinks as your next item gets closer, with a short badge like 3d."
+                : "The icon stays still, with no badge."}
+            </p>
+          </div>
+        </Popover>
+      )}
+    </>
+  );
+}
