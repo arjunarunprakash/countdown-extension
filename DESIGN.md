@@ -103,6 +103,8 @@ All text pairs meet WCAG 2.2 AA (4.5:1), measured at the worst case: all three g
 
 Inter (variable, bundled with the extension), falling back to the system UI font. Features `cv11`, `ss01` (single-storey *a*, open digits). Numbers in countdowns, dates and calendars use tabular figures.
 
+Sizes are set in `rem` (shown here in px at Chrome's default 16px), so they follow the user's font-size setting.
+
 | Token | Size / line height | Use |
 |---|---|---|
 | `text-xs` | 11 / 16 | Tags, badges, meta lines, chips |
@@ -204,6 +206,9 @@ Easing: `ease-out` cubic-bezier(0.2, 0, 0, 1) for entrances; `ease-in-out` cubic
 ## Accessibility
 
 - WCAG 2.2 AA, checked with axe-core on every main screen in light and dark mode (0 violations).
+- Text sizes are in `rem`, so the panel follows Chrome's font-size setting (Settings › Appearance) and, where supported, the OS text scale (`<meta name="text-scale">`). Checked at 16, 20 and 24px roots at 320px wide: no clipping or sideways scrolling. Countdown numbers cap their size to their box with container units (`min(1em, 50cqi)`), so large text never overflows it.
+- Forced colors (Windows High Contrast): glass surfaces keep their 1px border; states drawn with shadows or accent fills (selected tiles, chosen days and weekdays, checked boxes, drop targets, the selected swatch) switch to system `Highlight`. Category stripes and dots keep their colour as the only category cue.
+- The page declares `<meta name="color-scheme" content="light dark">`, and a forced light/dark theme is applied by a small blocking script in `<head>` (`theme-init.js`; extension pages can't run inline scripts) so the panel never flashes the other scheme while it loads. "System" in the theme button's label says what it currently resolves to.
 - Full keyboard use: every control is reachable; the calendar supports arrows, Home/End and PageUp/PageDown (Shift: a year); the time list supports arrows and Enter; Escape closes the innermost layer; Cmd/Ctrl+Z undoes from the toast.
 - Visible 2px focus ring on everything focusable; focus returns sensibly after closing editors, popovers and sheets, and moves to the next tile after Remove or Complete.
 - Tiles are named by their visible text, icon buttons by `aria-label` (with a matching tooltip), and countdown boxes describe the exact time left. Unit changes and selection counts are announced politely.

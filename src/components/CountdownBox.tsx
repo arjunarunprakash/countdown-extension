@@ -39,7 +39,7 @@ export function CountdownBox({ item, unit: globalUnit, now, completing = false, 
     const overdue = item.type === "due";
     return (
       <div class={`countdown countdown--past ${overdue ? "countdown--overdue" : "countdown--started"}`}>
-        {overdue ? "Overdue" : "Started"}
+        <span class="countdown__label">{overdue ? "Overdue" : "Started"}</span>
       </div>
     );
   }

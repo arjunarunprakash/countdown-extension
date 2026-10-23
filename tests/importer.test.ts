@@ -152,6 +152,34 @@ describe("importing a link", () => {
     expect(importStatus.value).toEqual({ kind: "error", message });
   });
 
+  it("caps the download at 10 MB even without a Content-Length", async () => {
+    const chunk = new Uint8Array(1024 * 1024).fill(65);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        sent++;
+        c.enqueue(chunk);
+        if (sent > 20) c.close();
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body)));
+    await importUrl("https://calendar.example.com/huge.ics");
+    expect(importStatus.value).toEqual({ kind: "error", message: "That calendar is too large to import (over 10 MB)." });
+    expect(sent).toBeLessThan(15); // stopped reading, didn't download all of it
+  });
+
+  it("explains a download that breaks part-way", async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(new TextEncoder().encode("BEGIN:VCALENDAR"));
+        c.error(new TypeError("network error"));
+      },
+    });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(body)));
+    await importUrl("https://calendar.example.com/feed.ics");
+    expect(importStatus.value).toEqual({ kind: "error", message: "Couldn't download the calendar from calendar.example.com." });
+  });
+
   it("rejects links that aren't https or webcal", async () => {
     await importUrl("ftp://example.com/x.ics");
     expect(importStatus.value).toEqual({ kind: "error", message: "Use an https:// or webcal:// calendar link." });

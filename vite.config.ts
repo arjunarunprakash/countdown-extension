@@ -11,7 +11,7 @@ export default defineConfig({
   build: {
     outDir: resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-    target: "chrome120",
+    target: "chrome123", // manifest.json minimum_chrome_version
     rollupOptions: {
       input: {
         sidepanel: resolve(import.meta.dirname, "src/sidepanel/index.html"),

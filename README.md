@@ -76,6 +76,10 @@ Countdown stores everything locally in `chrome.storage.local`; there is no accou
 | `npm run coverage` | Tests with coverage for `src/lib` and `src/state` |
 | `npm run typecheck` | TypeScript only |
 | `npm run icons` | Regenerate `public/icons/*.png` from `scripts/make-icons.mjs` |
+| `npm run package` | Production build, checked and zipped to `release/countdown-v<version>.zip` for the Chrome Web Store |
+| `bash scripts/screenshots.sh` | Re-render the 1280×800 store screenshots (needs a dev build on `vite preview --port 4173`) |
+
+**Publishing:** [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md) holds the store listing copy, permission justifications, privacy disclosures and version history; [PRIVACY.md](PRIVACY.md) is the privacy policy. Bump the version in both `package.json` and `public/manifest.json` before each upload.
 
 **Sample data:** in a development build (`npm run dev`), open `chrome-extension://<extension-id>/sidepanel/index.html?seed` while the list is empty to load sample items, including a repeating stack. Production builds strip this out.
 

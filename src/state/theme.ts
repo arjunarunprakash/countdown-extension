@@ -1,8 +1,9 @@
-import { effect } from "@preact/signals";
+import { effect, signal } from "@preact/signals";
 import type { Theme } from "../lib/storage";
 import { prefs, setPrefs } from "./store";
 
 // Outside the "countdown:" prefix that the localStorage fallback treats as app data.
+// public/sidepanel/theme-init.js reads it before the first paint.
 const CACHE_KEY = "countdown-theme-cache";
 const ORDER: Theme[] = ["system", "light", "dark"];
 
@@ -16,19 +17,10 @@ export function applyTheme(theme: Theme) {
   else root.dataset.theme = theme;
 }
 
-/**
- * Applies the last-used theme synchronously before storage loads, so a forced
- * theme doesn't flash the system one on open. localStorage is only a cache;
- * chrome.storage prefs remain the source of truth.
- */
-export function applyCachedTheme() {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached === "light" || cached === "dark") applyTheme(cached);
-  } catch {
-    // Storage can be unavailable; the stored pref is applied a moment later.
-  }
-}
+/** The system's current scheme, kept live so "System" can say what it resolves to. */
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+export const systemDark = signal(darkQuery.matches);
+darkQuery.addEventListener("change", (e) => (systemDark.value = e.matches));
 
 export function syncTheme() {
   effect(() => {

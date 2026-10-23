@@ -164,7 +164,7 @@ async function fetchCalendar(url: URL, permission: Promise<boolean>) {
   let response: Response;
   try {
     response = await fetch(url, { signal: controller.signal, credentials: "omit", cache: "no-store", redirect: "follow" });
-  } catch (error) {
+  } catch {
     clearTimeout(timer);
     importStatus.value = {
       kind: "error",
@@ -175,22 +175,37 @@ async function fetchCalendar(url: URL, permission: Promise<boolean>) {
     };
     return;
   }
-  clearTimeout(timer);
-
   if (!response.ok) {
+    clearTimeout(timer);
     const hint = response.status === 401 || response.status === 403 || response.status === 404
       ? " Make sure it's a public or secret iCal link."
       : "";
     importStatus.value = { kind: "error", message: `The calendar server replied ${response.status}.${hint}` };
     return;
   }
-  const length = Number(response.headers.get("content-length") ?? 0);
-  if (length > MAX_CALENDAR_BYTES) {
-    importStatus.value = { kind: "error", message: "That calendar is too large to import (over 10 MB)." };
+  const tooLarge = "That calendar is too large to import (over 10 MB).";
+  if (Number(response.headers.get("content-length") ?? 0) > MAX_CALENDAR_BYTES) {
+    clearTimeout(timer);
+    controller.abort();
+    importStatus.value = { kind: "error", message: tooLarge };
     return;
   }
   importStatus.value = { kind: "loading", label: "Reading calendar…" };
-  const text = await response.text();
+  // The timeout covers the download too, and the size cap holds even when the
+  // server sends no Content-Length (or a wrong one).
+  let text: string;
+  try {
+    text = await readLimited(response, MAX_CALENDAR_BYTES);
+  } catch (error) {
+    importStatus.value = {
+      kind: "error",
+      message: error instanceof RangeError ? tooLarge : controller.signal.aborted ? `${url.hostname} took too long to respond.` : `Couldn't download the calendar from ${url.hostname}.`,
+    };
+    controller.abort();
+    return;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!/BEGIN:VCALENDAR/i.test(text)) {
     importStatus.value = {
       kind: "error",
@@ -199,6 +214,25 @@ async function fetchCalendar(url: URL, permission: Promise<boolean>) {
     return;
   }
   load(text, url.hostname);
+}
+
+/** Reads a response body as text, throwing a RangeError past `max` bytes. */
+async function readLimited(response: Response, max: number): Promise<string> {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel();
+      throw new RangeError("Calendar too large");
+    }
+    text += decoder.decode(value, { stream: true });
+  }
 }
 
 /** Adds the selected, non-duplicate candidates to the list, optionally into a category. */

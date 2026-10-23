@@ -210,6 +210,20 @@
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-tight);
   font-variant-numeric: tabular-nums;
+  /* Numbers shrink to fit the box when large text settings would overflow it. */
+  container-type: inline-size;
+}
+
+.countdown__value {
+  font-size: min(1em, 50cqi);
+}
+
+.countdown--long .countdown__value {
+  font-size: min(1em, 32cqi);
+}
+
+.countdown__label {
+  font-size: min(1em, 23cqi);
 }
 
 /* Stacks reserve room below for the peeking layers; keep the box
@@ -545,7 +559,7 @@ button.tile:active {
 
 /* ── Countdown values ──────────────────────────────────────── */
 .countdown--long {
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 /* Fade the numbers (and the unit label) in when the unit changes. */
@@ -1695,8 +1709,8 @@ button.tile:active {
   background: var(--color-surface-sunken);
   box-shadow: inset 0 0 0 1px var(--color-border);
   color: var(--color-text-subtle);
-  font-size: 10px;
-  line-height: 14px;
+  font-size: 0.625rem;
+  line-height: 0.875rem;
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
@@ -2110,7 +2124,7 @@ button.tile:active {
   padding: 0 var(--space-1);
   white-space: nowrap;
   font-size: var(--text-xs);
-  line-height: 22px;
+  line-height: 1.375rem;
 }
 
 /* Reduced motion: rules whose more specific selectors would otherwise
@@ -2301,7 +2315,6 @@ button.countdown:active {
   align-items: center;
   gap: var(--space-0-5);
   min-height: var(--size-icon-button);
-  touch-action: none;
 }
 
 .category__head[data-category-head] {
@@ -2600,5 +2613,55 @@ body.is-dragging * {
   .category,
   .swatch {
     transition: none;
+  }
+}
+
+/* ── Forced colors (Windows High Contrast) ─────────────────────
+   The system palette replaces our colors and drops box-shadows, so states
+   drawn with a shadow ring or an accent fill get a system-colored outline
+   or Highlight fill instead. Glass surfaces keep their 1px border. */
+@media (forced-colors: active) {
+  .tile--selected,
+  .tile--selected:hover,
+  .category--drop-target {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .category--insert-before {
+    border-top: 3px solid Highlight;
+  }
+
+  .category--insert-after {
+    border-bottom: 3px solid Highlight;
+  }
+
+  .calendar__day--selected,
+  .weekday[aria-pressed="true"],
+  .segmented__option input:checked + span,
+  .checkbox__input:checked + .checkbox__box,
+  .checkbox__input:indeterminate + .checkbox__box,
+  .option--active,
+  .countdown--done {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+
+  .swatch {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+  }
+
+  .swatch[aria-checked="true"] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  /* The colored stripe and dot are the only category cue left; keep them. */
+  .row--cat .tile::before,
+  .category__dot {
+    forced-color-adjust: none;
   }
 }

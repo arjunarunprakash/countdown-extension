@@ -105,13 +105,15 @@
 
   /* ── Typography ──────────────────────────────────────────── */
   --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* size / line-height pairs on a 4px baseline */
-  --text-xs: 11px;    --leading-xs: 16px;   /* tags, badges */
-  --text-sm: 12px;    --leading-sm: 16px;   /* meta lines, dates, tooltips */
-  --text-base: 14px;  --leading-base: 20px; /* body, titles, inputs */
-  --text-md: 16px;    --leading-md: 24px;   /* editor title */
-  --text-lg: 20px;    --leading-lg: 24px;   /* countdown numbers */
-  --text-xl: 24px;    --leading-xl: 32px;   /* empty-state heading */
+  /* size / line-height pairs on a 4px baseline (at the default 16px root).
+     In rem so text follows Chrome's font-size setting and OS text scaling;
+     the px values are what they come to by default. */
+  --text-xs: 0.6875rem;  --leading-xs: 1rem;      /* 11/16: tags, badges */
+  --text-sm: 0.75rem;    --leading-sm: 1rem;      /* 12/16: meta lines, dates, tooltips */
+  --text-base: 0.875rem; --leading-base: 1.25rem; /* 14/20: body, titles, inputs */
+  --text-md: 1rem;       --leading-md: 1.5rem;    /* 16/24: editor title */
+  --text-lg: 1.25rem;    --leading-lg: 1.5rem;    /* 20/24: countdown numbers */
+  --text-xl: 1.5rem;     --leading-xl: 2rem;      /* 24/32: empty-state heading */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;

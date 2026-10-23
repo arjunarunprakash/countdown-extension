@@ -6,10 +6,9 @@ import "../styles/base.css";
 import "../styles/components.css";
 import { now, startClock } from "../state/clock";
 import { addItem, ensureOccurrences, initStore, items, makeRepeating } from "../state/store";
-import { applyCachedTheme, syncTheme } from "../state/theme";
+import { syncTheme } from "../state/theme";
 import { App } from "./App";
 
-applyCachedTheme();
 await initStore();
 syncTheme();
 startClock();
