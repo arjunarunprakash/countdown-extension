@@ -1,24 +1,48 @@
 # Countdown
 
-A calm, minimal Chrome extension that keeps your deadlines and event start times in Chrome's side panel, each with a live countdown.
+**See exactly how long you have left until every deadline and event, right in Chrome's side panel.**
 
-- Add deadlines (**Due**) and events (**Starts**); edit everything inline
-- Live countdowns in days, hours, minutes or seconds
-- Colour-coded categories (a course, a project, a trip); drag tiles and stacks between them
-- Repeating items, hand-picked dates, weekday schedules and numbered titles ("Chapter {n} Homework")
-- Import from `.ics` files and calendar links (Google, Apple, Outlook), with a preview and duplicate detection
-- Export to Google Calendar or any calendar app via `.ics`
-- Seven colour themes in light and dark, with a frosted-glass look; keyboard and screen-reader friendly
-- A toolbar icon that matches your theme and Chrome's light or dark mode, and (optionally) sweeps down as your next item gets closer
+![Countdown docked beside a course page in Chrome](store-assets/screenshot-1.png)
 
-Design tokens, components and motion are documented in [DESIGN.md](DESIGN.md).
+## Why I made this
 
-## Requirements
+If your brain works a bit like mine (a little ADHD, maybe), it's hard to feel how close something really is when it's just a block on a calendar. "Due Friday" doesn't land the way "2 days left" does.
+
+So I built a simple panel that sits beside whatever I'm working on, pulls in my calendar, and turns every deadline and exam into a live countdown. No more digging through my calendar to work out how much time I've got. I hope it helps you as much as it helps me.
+
+## What it does
+
+- **Live countdowns** in days, hours, minutes or seconds, for deadlines (**Due**) and events (**Starts**)
+- **Brings in your calendar:** `.ics` files or Google, Apple and Outlook calendar links, with duplicates spotted for you
+- **Colour-coded categories** for each course, project or trip, with drag and drop
+- **Repeating items,** like weekly homework numbered "Chapter 4, 5, 6…"
+- **A toolbar icon** that shows the time left until your next deadline (switch it off in Appearance if it stresses you out)
+- **Seven colour themes** in light and dark, full keyboard support, and screen reader friendly
+
+## Your privacy
+
+Everything you add stays in Chrome on your own device. None of it is sent to me or anyone else, and there's no account, server, analytics or tracking. Countdown asks for no access to websites when you install it. If you import a calendar link, Chrome asks whether Countdown may read that one site, and that's the only site it ever contacts. The full policy is in [PRIVACY.md](PRIVACY.md).
+
+## Get Countdown
+
+It's on its way to the Chrome Web Store. Until then, you can build it and load it yourself in a couple of minutes; the steps are below.
+
+## Made by one person
+
+Countdown is a one-person project, built and looked after by me. If something's broken or you have an idea, I'd love to hear it: [open an issue](https://github.com/arjunarunprakash/countdown-extension/issues).
+
+---
+
+## Building it yourself
+
+The rest of this page is for running Countdown from source, and a full reference of how everything behaves. Design tokens, components and motion are documented in [DESIGN.md](DESIGN.md).
+
+### Requirements
 
 - **Chrome 123 or later** (side panel, `light-dark()` colors, the Popover API)
 - **Node 24 LTS** with npm 11, to build
 
-## Install and build
+### Install and build
 
 ```bash
 npm ci
@@ -29,7 +53,7 @@ This writes the unpacked extension to `dist/`.
 
 > With older Node versions bundled with npm 10, `npm install` can fail with `Cannot read properties of null (reading 'edgesOut')` (an npm bug). `npm ci` still works; upgrading to Node 24 fixes it.
 
-## Load the extension in Chrome
+### Load the extension in Chrome
 
 1. Run `npm run build`.
 2. Open `chrome://extensions` and turn on **Developer mode** (top right).
@@ -39,6 +63,9 @@ This writes the unpacked extension to `dist/`.
 **After changing the code:** run `npm run build` again (or keep `npm run dev` running, which rebuilds on save), click the reload icon on Countdown's card in `chrome://extensions`, then reopen the panel.
 
 ## Using Countdown
+
+A quick guide to everything you can do.
+
 
 | To… | Do this |
 |---|---|
@@ -55,7 +82,7 @@ This writes the unpacked extension to `dist/`.
 | Undo | Every remove, complete, clear and import shows **Undo** for 5 seconds (or press Cmd/Ctrl+Z). |
 | Export, or act on several at once | **Export** (header) → tick items → Google Calendar, Download .ics, Remove, or **Move to category** (shown once you have categories). |
 | Import | **Import** (header), or drop an `.ics` file anywhere on the panel. Or paste a calendar link and press **Fetch**. Review the preview, optionally choose a **Category** for everything you're adding, then **Add selected**. |
-| Change the look | The last header button opens **Appearance**: **Mode** (System, Light or Dark), **Colour** (seven themes), and **Time left on toolbar icon**. |
+| Change the look | The palette button at the end of the header opens **Appearance**: **Mode** (System, Light or Dark), **Colour** (seven themes), and **Time left on toolbar icon**. |
 
 **Calendar links:** in Google Calendar, use *Settings › your calendar › Secret address in iCal format*; in Apple Calendar, share the calendar as a Public Calendar and copy its `webcal://` link.
 
@@ -63,7 +90,7 @@ This writes the unpacked extension to `dist/`.
 
 Everything works without a mouse. Tab moves between controls; Enter or Space activates. In the calendar, arrows move by day or week, Home/End to the week's ends, PageUp/PageDown by month (with Shift: by year). In the time field, arrows move through the list and Enter picks. Escape closes the innermost popover, editor or sheet, and cancels a drag. Cmd/Ctrl+Z undoes while the toast is showing. Dragging is mouse-only; the **Category** field in editors and **Move up / Move down** in a category's menu do the same jobs from the keyboard.
 
-## Privacy and permissions
+## Permissions, in detail
 
 Countdown stores everything locally in `chrome.storage.local`; there is no account, server or analytics. It requests `sidePanel`, `storage`, `alarms` (to redraw the toolbar icon on time) and `offscreen` (a hidden page that tells the toolbar icon whether Chrome is in dark mode); none of these shows a warning or prompt at install. When you fetch a calendar link, Chrome asks for permission to read that site (and its subdomains, because calendar servers redirect); nothing else on the web is accessed. Exports are files you download.
 
@@ -115,7 +142,7 @@ tests/             Vitest unit tests
 
 ### Testing
 
-`npm test` runs 250+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, categories (grouping, order, assignment, undo), `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
+`npm test` runs 270+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, categories (grouping, order, assignment, undo), `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
 
 Accessibility is checked with axe-core against every main screen in light and dark mode (WCAG 2.2 AA: 0 violations).
 
@@ -128,7 +155,7 @@ Accessibility is checked with axe-core against every main screen in light and da
 
 ## Known limitations
 
-- Share links (Phase 2 of the product) need a backend and aren't built yet. The Export sheet's placeholder for them was removed before publishing, since store reviewers can flag features that don't work.
+- Share links would need a server, so they aren't built. Keeping everything on your device matters more to me.
 - Notifications and account sync are out of scope.
 - Calendars are imported once; there is no automatic refresh of a subscribed link.
 - Exotic recurrence rules ("second Tuesday", hourly) import as a fixed stack of their next 6 occurrences.
@@ -190,6 +217,6 @@ Accessibility is checked with axe-core against every main screen in light and da
   - One-off times are written in UTC. Repeating series use floating local time, so "10:00 every Monday" stays at 10:00 across daylight-saving changes. Due vs. Starts is kept in an `X-COUNTDOWN-TYPE` property so a later re-import can restore it.
   - A series exports as one repeating event from its next occurrence. Removed occurrences become `EXDATE`s, and moved occurrences become separate events.
   - Month-end rules use the simplest, most widely supported form. The 31st becomes "last day of the month" and 29 February becomes "last day of February", both exact. For the 29th or 30th, other calendars skip months without that day, whereas the app uses the last day.
-- **Look and theme.** Surfaces use a frosted-glass material (translucent fill, backdrop blur, bright hairline edge) over a soft fixed gradient. The header's theme button cycles **System → Light → Dark**; the choice is saved, and the panel cross-fades between themes. Text contrast is checked against the most saturated part of the gradient. With *Reduce transparency* turned on in the OS, surfaces become solid.
+- **Look and theme.** Surfaces use a frosted-glass material (translucent fill, backdrop blur, bright hairline edge) over a soft fixed gradient. Mode and colour are chosen in **Appearance**; the choice is saved, and the panel cross-fades between looks. Text contrast is checked against the most saturated part of the gradient. With *Reduce transparency* turned on in the OS, surfaces become solid.
 - **Dates.** Dates always display as `Thursday, 29 October 2026, 3:00 PM`; typed dates use MM/DD/YYYY. Times are stored with their UTC offset and exported in UTC.
 - **All-day events.** Items imported as all-day events show no time and count down to the start of that day.
