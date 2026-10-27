@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Countdown
 
-> Last Updated: 2026-10-23
+> Last Updated: 2026-10-26
 
 Everything the Chrome Developer Dashboard asks for, ready to copy.
 
@@ -15,30 +15,33 @@ Live countdowns to your deadlines and events in Chrome's side panel, with catego
 **Detailed Description** (plain text; the store strips Markdown)
 
 ```
-Countdown keeps every deadline and event in Chrome's side panel with a live countdown, so you can see how long you have left without leaving the page you're on. Group things by course, project or trip, let weekly work repeat itself, and bring in the calendars you already use. Everything stays on your device.
+Countdown shows exactly how long you have left until every deadline and event, right in Chrome's side panel.
 
-FEATURES
-• Live countdowns in days, hours, minutes or seconds, for deadlines (Due) and events (Starts)
-• Colour-coded categories: drag items and whole repeating series between them
-• Repeating items, from daily to yearly or on dates you pick, with numbered titles like "Chapter 4 Homework"
-• Import .ics files or Google, Apple and Outlook calendar links, with a preview that spots duplicates
-• Export to Google Calendar or any calendar app
-• Seven colour themes in light and dark, and a toolbar icon that can show the time left until your next item
-• Undo for every change, full keyboard support, and screen reader friendly
+I made it for myself. If your brain works a bit like mine (a little ADHD, maybe), it's hard to feel how close something really is when it's just a block on a calendar. "Due Friday" doesn't land the way "2 days left" does. So I built a simple panel that sits beside whatever I'm working on, pulls in my calendar, and turns every deadline and exam into a live countdown. No more digging through my calendar to work out how much time I've got.
 
-HOW TO USE
-1. Pin Countdown and click its toolbar icon to open the side panel.
-2. Click + to add a deadline or event, or Import to bring in a calendar.
-3. Use the arrow next to + to create categories, then drag items into them.
+Countdown is made by one person, and it keeps everything on your device. There's no account, no server, no analytics and no tracking.
 
-PRIVACY
-Everything you add stays on your device. Countdown has no account, server, analytics or tracking.
+WHAT IT DOES
+• Live countdowns in days, hours, minutes or seconds, for deadlines and events
+• Brings in your calendar: .ics files or Google, Apple and Outlook calendar links, with duplicates spotted for you
+• Colour-coded categories for each course, project or trip, with drag and drop
+• Repeating items, like weekly homework numbered Chapter 4, 5, 6 and so on
+• A toolbar icon that shows the time left until your next deadline (you can switch this off if it stresses you out)
+• Seven colour themes in light and dark, full keyboard support, and screen reader friendly
 
-PERMISSIONS
-Countdown asks for no access to websites when you install it. If you paste a calendar link and press Fetch, Chrome asks whether Countdown may read that one site so it can download the calendar.
+GETTING STARTED
+1. Pin Countdown and click its icon to open the side panel.
+2. Click + to add a deadline, or Import to bring in your calendar.
+3. Use the arrow next to + to make categories, then drag items into them.
 
-SUPPORT
-Questions or bugs: https://github.com/arjunarunprakash/countdown-extension/issues
+YOUR PRIVACY
+Everything you add stays in Chrome on your own device. None of it is sent to me or anyone else, and there's nothing to sign up for. Countdown asks for no access to websites when you install it. If you import a calendar link, Chrome asks whether Countdown may read that one site, and that's the only site it ever contacts.
+
+FROM ME
+Countdown is a one-person project, built and looked after by me. If something's broken or you have an idea, I'd love to hear it: https://github.com/arjunarunprakash/countdown-extension/issues
+
+I hope it helps you as much as it helps me.
+Arjun
 ```
 
 **Category**
