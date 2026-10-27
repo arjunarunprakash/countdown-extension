@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Countdown",
   "version": "1.0.0",
-  "description": "Live countdowns to your deadlines and events in Chrome's side panel, with categories, repeating items and calendar import.",
+  "description": "See how long you really have until every deadline and exam. Live countdowns in Chrome's side panel. Your data stays on your device.",
   "minimum_chrome_version": "123",
   "permissions": [
     "sidePanel",

@@ -9,8 +9,8 @@ Everything the Chrome Developer Dashboard asks for, ready to copy.
 **Extension Name**
 Countdown
 
-**Short Description** (matches manifest.json's description; 122 of 132 characters)
-Live countdowns to your deadlines and events in Chrome's side panel, with categories, repeating items and calendar import.
+**Short Description** (matches manifest.json's description; 131 of 132 characters)
+See how long you really have until every deadline and exam. Live countdowns in Chrome's side panel. Your data stays on your device.
 
 **Detailed Description** (plain text; the store strips Markdown)
 
