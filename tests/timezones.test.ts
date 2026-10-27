@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toLocalISO } from "../src/lib/dates";
 import { buildIcs } from "../src/lib/ics";
 import { occurrences, presetRule, topUp, WINDOW, type Series } from "../src/lib/recurrence";
-import { instantToWallTime, resolveTimeZone, zonedTimeToInstant } from "../src/lib/timezone";
+import { instantToWallTime, resolveTimeZone, sameZone, zonedTimeToInstant } from "../src/lib/timezone";
 import type { Item } from "../src/lib/types";
 import { buildVtimezone } from "../src/lib/vtimezone";
 
@@ -41,6 +41,29 @@ const kolkata: Series = {
   nextIndex: 1,
   timeZone: "Asia/Kolkata",
 };
+
+describe("same zone", () => {
+  const from = new Date(2026, 0, 1);
+  it("treats aliases and zones with identical rules as the same", () => {
+    expect(sameZone("America/Los_Angeles", "US/Pacific", from)).toBe(true);
+    expect(sameZone("Europe/Lisbon", "Atlantic/Madeira", from)).toBe(true);
+  });
+
+  it("tells apart zones that only differ for part of the year", () => {
+    // Same offset in winter; Phoenix skips daylight saving.
+    expect(sameZone("America/Phoenix", "America/Denver", from)).toBe(false);
+    // Mexico dropped daylight saving in 2022; Chicago didn't.
+    expect(sameZone("America/Mexico_City", "America/Chicago", from)).toBe(false);
+  });
+
+  it("looks ahead, so zones that split later aren't treated as one", () => {
+    // British Columbia stays on daylight time from November 2026 (in tz data
+    // that includes the change); before that it matched Los Angeles.
+    const nov = Date.UTC(2026, 10, 16, 12);
+    const split = instantToWallTime(nov, "America/Vancouver")!.hour !== instantToWallTime(nov, "America/Los_Angeles")!.hour;
+    expect(sameZone("America/Vancouver", "America/Los_Angeles", from)).toBe(!split);
+  });
+});
 
 describe("series following another zone", () => {
   it("generates every occurrence at 09:30 IST, through other zones' DST changes", () => {

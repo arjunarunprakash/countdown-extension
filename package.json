@@ -1,6 +1,6 @@
 {
   "name": "countdown-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "A minimal Chrome side-panel extension for deadlines and event countdowns.",
@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "icons": "node scripts/make-icons.mjs",
     "package": "npm run build && node scripts/package.mjs",
+    "check:extension": "node scripts/check-extension.mjs",
     "coverage": "vitest run --coverage"
   },
   "dependencies": {

@@ -5,6 +5,7 @@ import { dupKey, findDuplicates, indexExisting } from "../src/lib/dedupe";
 import { buildIcs } from "../src/lib/ics";
 import { ImportError, parseIcs } from "../src/lib/ics-import";
 import { occurrences, presetRule, WINDOW, type Series } from "../src/lib/recurrence";
+import { sameZone } from "../src/lib/timezone";
 import type { Item } from "../src/lib/types";
 
 const now = Date.UTC(2026, 9, 22, 18, 0, 0); // 22 Oct 2026, 18:00 UTC
@@ -150,9 +151,9 @@ describe("parseIcs: repeating events", () => {
       .slice(3)
       .map((d) => d.getTime());
     expect(c.items.map(instant)).toEqual(app);
-    // Outlook's "Pacific Standard Time" maps to America/Los_Angeles; recorded only if it isn't our own zone.
+    // Outlook's "Pacific Standard Time" maps to America/Los_Angeles; recorded unless our zone keeps the same clock.
     const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    expect(c.series.timeZone).toBe(local === "America/Los_Angeles" || local === "America/Vancouver" ? undefined : "America/Los_Angeles");
+    expect(c.series.timeZone).toBe(sameZone(local, "America/Los_Angeles") ? undefined : "America/Los_Angeles");
   });
 
   it("honours EXDATE and a moved occurrence", () => {

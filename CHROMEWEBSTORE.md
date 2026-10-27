@@ -4,6 +4,8 @@
 
 Everything the Chrome Developer Dashboard asks for, ready to copy.
 
+**Live listing:** https://chromewebstore.google.com/detail/countdown/feeppdmbpeckhalnfnaflppcjadpceia (item ID `feeppdmbpeckhalnfnaflppcjadpceia`)
+
 ## Store Listing
 
 **Extension Name**
@@ -140,9 +142,18 @@ The source is [PRIVACY.md](PRIVACY.md). Keep it consistent with the Privacy & Da
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-10-23 | First release: live countdowns, repeating items, categories, import/export, seven colour themes, live toolbar icon | Draft |
+| 1.0.1 | 2026-10-26 | Fix: a repeating event imported from another time zone that matches yours today but changes its clock rules later (for example Los Angeles vs British Columbia from November 2026) now keeps its source time. Warmer summary. Listing: personal description | Draft |
+| 1.0.0 | 2026-10-24 | First release: live countdowns, repeating items, categories, import/export, seven colour themes, live toolbar icon | Published |
 
 ## Review Notes
+
+### Releasing an update
+
+1. Bump the version in `package.json` and `public/manifest.json` (`npm version <x.y.z> --no-git-tag-version` updates package.json and its lockfile). The store rejects a version that isn't higher than the published one.
+2. Run `npm run package`, then `npm run check:extension` to load that exact build in Chrome and check the worker, toolbar icon and permissions.
+3. In the developer dashboard, open Countdown › **Package** › **Upload new package** and upload `release/countdown-v<version>.zip`. Update the **Store listing** tab too if the description or images changed, then **Submit for review**.
+4. If the update adds a permission that shows a warning, Chrome disables the extension for existing users until they accept it. Avoid that where possible: request it as an optional permission at the moment it's needed, as calendar-site access already is.
+5. Add a row to Version History. Once approved, Chrome updates installed copies automatically within a few hours; installed data and settings carry over.
 
 ### Packaging
 `npm run package` builds and writes `release/countdown-v<version>.zip` with `manifest.json` at its root. It refuses to package when manifest.json and package.json versions differ, or when the build contains source maps or the dev-only audit script. Bump both versions before every upload; the store rejects a version that isn't higher than the published one.

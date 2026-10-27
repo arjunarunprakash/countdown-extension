@@ -2,6 +2,8 @@
 
 **See exactly how long you have left until every deadline and event, right in Chrome's side panel.**
 
+**[Add Countdown to Chrome](https://chromewebstore.google.com/detail/countdown/feeppdmbpeckhalnfnaflppcjadpceia)** · free, on the Chrome Web Store
+
 ![Countdown docked beside a course page in Chrome](store-assets/screenshot-1.png)
 
 ## Why I made this
@@ -25,7 +27,9 @@ Everything you add stays in Chrome on your own device. None of it is sent to me 
 
 ## Get Countdown
 
-It's on its way to the Chrome Web Store. Until then, you can build it and load it yourself in a couple of minutes; the steps are below.
+Install it from the **[Chrome Web Store](https://chromewebstore.google.com/detail/countdown/feeppdmbpeckhalnfnaflppcjadpceia)**, then pin it and click its icon to open the side panel. It updates itself whenever I publish a new version.
+
+If you'd rather build it from source, the steps are below.
 
 ## Made by one person
 
@@ -105,9 +109,10 @@ Countdown stores everything locally in `chrome.storage.local`; there is no accou
 | `npm run typecheck` | TypeScript only |
 | `npm run icons` | Regenerate `public/icons/*.png` from `scripts/make-icons.mjs` |
 | `npm run package` | Production build, checked and zipped to `release/countdown-v<version>.zip` for the Chrome Web Store |
+| `npm run check:extension` | Loads the built `dist/` into headless Chrome and checks the worker, toolbar icon and permissions before an upload |
 | `bash scripts/screenshots.sh` | Re-render the store images (five 1280×800 screenshots, promo tile, marquee) from the real panel; needs a build on `vite preview --port 4173` |
 
-**Publishing:** [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md) holds the store listing copy, permission justifications, privacy disclosures and version history; [PRIVACY.md](PRIVACY.md) is the privacy policy. Bump the version in both `package.json` and `public/manifest.json` before each upload.
+**Publishing:** Countdown is [live on the Chrome Web Store](https://chromewebstore.google.com/detail/countdown/feeppdmbpeckhalnfnaflppcjadpceia). [CHROMEWEBSTORE.md](CHROMEWEBSTORE.md) holds the listing copy, permission justifications, privacy disclosures, version history and the steps for releasing an update; [PRIVACY.md](PRIVACY.md) is the privacy policy.
 
 **Sample data:** in a development build (`npm run dev`), open `chrome-extension://<extension-id>/sidepanel/index.html?seed` while the list is empty to load sample items, including a repeating stack. Production builds strip this out.
 
@@ -142,7 +147,7 @@ tests/             Vitest unit tests
 
 ### Testing
 
-`npm test` runs 270+ unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, categories (grouping, order, assignment, undo), `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
+`npm test` runs 275 unit tests covering countdown math and formatting, date and time parsing, the calendar, recurrence (DST, month ends, leap years), numbering, categories (grouping, order, assignment, undo), `.ics` export and import (round trips, time zones, RRULE mapping, EXDATE and moved occurrences, RFC 5545 line rules), duplicate detection, calendar links, storage validation and backends, the store's actions and undo, multi-panel sync, selection and import. Exported rules are cross-checked by expanding them with ical.js. The suite is run in several time zones (`TZ=Europe/London npm test`, `TZ=Asia/Kolkata npm test`, …) because date bugs hide there.
 
 Accessibility is checked with axe-core against every main screen in light and dark mode (WCAG 2.2 AA: 0 violations).
 

@@ -123,13 +123,26 @@ export function resolveTimeZone(tzid: string): string | null {
   return mapped && isValidTimeZone(mapped) ? mapped : null;
 }
 
-/** Whether two IANA names refer to the same zone right now and at the turn of the year (cheap equivalence check). */
-export function sameZone(a: string, b: string): boolean {
+/** How far ahead two zones must agree to count as the same: imported series run this long and beyond. */
+const SAME_ZONE_YEARS = 3;
+
+/**
+ * Whether two IANA names keep the same clock, sampled twice a month from the
+ * start of this year for SAME_ZONE_YEARS. Looking ahead matters: zones can
+ * agree today and split later when a region changes its rules (British
+ * Columbia staying on daylight time from November 2026, while Los Angeles
+ * still falls back).
+ */
+export function sameZone(a: string, b: string, from = new Date()): boolean {
   if (a === b) return true;
-  const year = new Date().getFullYear();
-  return [Date.UTC(year, 0, 15), Date.UTC(year, 6, 15)].every((t) => {
-    const wa = instantToWallTime(t, a);
-    const wb = instantToWallTime(t, b);
-    return wa && wb && wa.hour === wb.hour && wa.minute === wb.minute && wa.day === wb.day;
-  });
+  const year = from.getFullYear();
+  for (let m = 0; m < SAME_ZONE_YEARS * 12; m++) {
+    for (const day of [1, 16]) {
+      const t = Date.UTC(year, m, day, 12);
+      const wa = instantToWallTime(t, a);
+      const wb = instantToWallTime(t, b);
+      if (!wa || !wb || wa.hour !== wb.hour || wa.minute !== wb.minute || wa.day !== wb.day) return false;
+    }
+  }
+  return true;
 }
